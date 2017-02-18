@@ -6,7 +6,10 @@ package cacher;
 public class Compiler {
     public static void main(String[] args) {
         Lexer lexer = new Lexer();
-        BasicParser basicParser = new BasicParser(lexer);
-        basicParser.statements();
+        Parser parser = new Parser(new Lexer());
+        parser.statements();
+//        ImprovedParser parser = new ImprovedParser(new Lexer());
+//        parser.statements();
+
     }
 }

@@ -44,7 +44,7 @@ public class BasicParser {
              */
             statements();
         }
-        if(isLegalStatement){
+        if (isLegalStatement) {
             System.out.println("The statement is legal");
         }
     }
