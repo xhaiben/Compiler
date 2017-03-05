@@ -120,8 +120,16 @@ public class Input {
         if (noMoreChars()) {
             return 0;
         }
-//        if(EOF_READ==false&&ii_)
-        return 1;
+        if (!EOF_READ && ii_flush(false) < 0) {
+            /*
+            从输入流读入数据到缓冲区出错
+             */
+            return -1;
+        }
+        if (START_BUF[NEXT] == '\n') {
+            Lineno++;
+        }
+        return START_BUF[NEXT++];
     }
 
     public static int NO_MORE_CHARS_TO_READ = 0;
@@ -138,7 +146,7 @@ public class Input {
 		 *         |                    | |           |            |  |      |
 		 *         V                    V V           V            V  V      V
 		 *         +---------------------------------------------------------+---------+
-		 *         | 已经读取的区域        |          未读取的区域                 | 浪费的区域|
+		 *         | 已经读取的区域       |          未读取的区域              | 浪费的区域|
 		 *         +--------------------------------------------------------------------
 		 *         |<---shift_amt------>|<-----------copy_amt--------------->|
 		 *         |<-------------------------BUFSIZE---------------------------------->|
@@ -150,7 +158,7 @@ public class Input {
 		 * 如果输入流中已经没有可以读取的多余字符。
 		 * 如果force为true，那么不管NEXT有没有越过Danger，都会引发FLUSH操作
         */
-        int copy_amt, shift_amt = 0, left_edge = 0;
+        int copy_amt, shift_amt, left_edge;
         if (noMoreChars()) {
             return NO_MORE_CHARS_TO_READ;
         }

@@ -1,10 +1,9 @@
 package cacher;
 
 import java.io.UnsupportedEncodingException;
-import java.net.UnknownHostException;
 import java.util.Scanner;
 
-/**
+/*
  * Created by xhaiben on 2017/2/23.
  */
 public class StdInHandler implements FileHandler {
