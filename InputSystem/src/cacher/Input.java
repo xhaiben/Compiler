@@ -7,6 +7,7 @@ import java.util.Arrays;
  * Created by xhaiben on 2017/2/23.
  */
 public class Input {
+    public static final int EOF = 0;//输入流中没有可以读取的信息
     private final int MAX_LOOK = 16;//look ahead 最多字符数
     private final int MAX_LEX = 1024;//分词后字符串的最大长度
     private final int BUF_SIZE = (MAX_LEX * 3) + (2 * MAX_LOOK);//缓冲区大小
@@ -214,6 +215,33 @@ public class Input {
             EOF_READ = true;
         }
         return got;
+    }
+
+    public boolean ii_pushback(int n) {
+        /*
+        把预读取的若干字符退回缓冲区
+         */
+        while (--n >= 0 && NEXT > sMark) {
+            if (START_BUF[--NEXT] == '\n' || START_BUF[NEXT] == '\0') {
+                --Lineno;
+            }
+        }
+        if (NEXT < eMark) {
+            eMark = NEXT;
+            Mline = Lineno;
+        }
+        return (NEXT > sMark);
+    }
+
+    public byte ii_lookahead(int n) {
+        /*
+        预读取若干个字符
+         */
+        byte p = START_BUF[NEXT + n - 1];
+        if (EOF_READ && NEXT + n - 1 >= END_BUF) {
+            return EOF;
+        }
+        return (NEXT + n - 1 < 0 || NEXT + n - 1 >= END_BUF) ? 0 : p;
     }
 
     private FileHandler getFileHandler(String fileName) {
