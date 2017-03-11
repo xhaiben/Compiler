@@ -1,4 +1,4 @@
-package cacher;
+package cacher.lexer;
 /*
  * Created by xhaiben on 2017/3/11.
  */
@@ -33,7 +33,7 @@ public enum Tag {
 
     /*常量*/
 
-    TK_C_INT, //整型常量
+    TK_C_NUM, //数字常量
     TK_C_CHAR, //字符常量
     TK_C_STR, //字符串常量
 
@@ -51,11 +51,20 @@ public enum Tag {
     KW_BREAK, //break
     KW_RETURN, // return
     KW_SIZEOF, // sizeof
+    KW_SWITCH, // switch
+    KW_CASE, // case
+    KW_DEFAULT, // default
+    KW_DO, // do
+    KW_WHILE, // while
 
     KW_ALIGN, // __align
     KW_CDECL, // __cdecl
     KW_STD_CALL, // __stdcall
 
     /*标识符*/
-    TK_IDENT
+
+    TK_IDENT,
+
+    /*错误*/
+    ERR
 }
