@@ -75,6 +75,7 @@ public class Lexer {
                             //0x后无数据
                             lexError(LexError.NUM_HEX_TYPE);
                             token = new Token(Tag.ERR);
+                            tokenList.add(token);
                         }
                     } else if (ch == 'b' && inputSystem.hasNext()) { // 二进制
                         ch = inputSystem.nextChar();
@@ -87,6 +88,7 @@ public class Lexer {
                             // 0b后无数据
                             token = new Token(Tag.ERR);
                             lexError(LexError.NUM_BIN_TYPE);
+                            tokenList.add(token);
                         }
                     } else if (ch >= '0' && ch <= '7' && inputSystem.hasNext()) {
                         do {
@@ -163,6 +165,7 @@ public class Lexer {
                         }
                         ch = inputSystem.nextChar();
                     }
+                    ch=inputSystem.nextChar();
                     token = new Str(stringBuilder.toString());
                     tokenList.add(token);
                 }
@@ -265,12 +268,22 @@ public class Lexer {
                 case '.':
                     token = new Token(Tag.TK_DOT);
                     break;
+                case ' ':
+
+                case '\n':
+
+                case '\t':
+                    token = null;
+                    break;
                 default:
                     token = new Token(Tag.ERR);
                     lexError(LexError.TOKEN_NO_EXIST);
                     break;
             }
-            tokenList.add(token);
+            if(token!=null){
+                tokenList.add(token);
+            }
+
         }
         tokenList.add(new Token(Tag.TK_EOF));
     }

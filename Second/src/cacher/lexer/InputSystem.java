@@ -1,5 +1,8 @@
 package cacher.lexer;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.Scanner;
 
 /*
@@ -30,6 +33,22 @@ public class InputSystem {
         }
         scanner.close();
 //        System.out.println(input_content);
+    }
+
+    public void readFromFile() {
+        try {
+            File file = new File("D:\\IdeaProjects\\Compiler\\test.c");
+            FileInputStream fileInputStream = new FileInputStream(file);
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            Scanner scanner = new Scanner(inputStreamReader);
+            while (scanner.hasNextLine()) {
+                String line = scanner.nextLine();
+                input_content.append(line);
+            }
+            scanner.close();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public boolean hasNext() {
