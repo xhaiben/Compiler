@@ -35,15 +35,17 @@ public class InputSystem {
 //        System.out.println(input_content);
     }
 
-    public void readFromFile() {
+    public void readFromFile(File file) {
         try {
-            File file = new File("D:\\IdeaProjects\\Compiler\\test.c");
             FileInputStream fileInputStream = new FileInputStream(file);
             InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
             Scanner scanner = new Scanner(inputStreamReader);
             while (scanner.hasNextLine()) {
                 String line = scanner.nextLine();
                 input_content.append(line);
+                if(scanner.hasNext()){
+                    input_content.append('\n');
+                }
             }
             scanner.close();
         } catch (Exception e) {

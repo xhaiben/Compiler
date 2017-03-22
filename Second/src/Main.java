@@ -3,9 +3,6 @@ import cacher.lexer.Lexer;
 import cacher.lexer.Token;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStreamReader;
-import java.util.Scanner;
 
 /*
  * Created by xhaiben on 2017/3/18.
@@ -14,12 +11,12 @@ import java.util.Scanner;
 public class Main {
     public static void main(String[] args) throws Exception {
         InputSystem inputSystem = new InputSystem();
-        inputSystem.readFromFile();
+        File file = new File("D:\\IdeaProjects\\Compiler\\test2.c");
+        inputSystem.readFromFile(file);
         Lexer lexer = new Lexer(inputSystem);
         lexer.lex();
         for (Token token : lexer.getTokenList()) {
             System.out.println(token.getTag());
         }
-
     }
 }
