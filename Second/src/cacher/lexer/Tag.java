@@ -5,7 +5,7 @@ package cacher.lexer;
 public enum Tag {
     /*运算符及分隔符*/
 
-    TK_PLUS, // * 加号
+    TK_PLUS, // + 加号
     TK_MINUS, // - 减号
 
     TK_INC, // ++ 自加
@@ -50,22 +50,23 @@ public enum Tag {
     /*关键字*/
 
     KW_CHAR, // char
-    KW_SHORT, //short
+//    KW_SHORT, //short
     KW_INT, // INT
     KW_VOID, // void
-    KW_STRUCT, //struct
+//    KW_STRUCT, //struct
     KW_IF, // if
     KW_ELSE, //else
     KW_FOR, // for
     KW_CONTINUE, // continue
     KW_BREAK, //break
     KW_RETURN, // return
-    KW_SIZEOF, // sizeof
+//    KW_SIZEOF, // sizeof
     KW_SWITCH, // switch
     KW_CASE, // case
     KW_DEFAULT, // default
     KW_DO, // do
     KW_WHILE, // while
+    KW_EXTERN, // extern
 
     KW_ALIGN, // __align
     KW_CDECL, // __cdecl

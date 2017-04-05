@@ -2,7 +2,7 @@ package cacher;
 
 import java.util.Scanner;
 
-/**
+/*
  * Created by xhaiben on 2017/2/12.
  */
 public class Lexer {

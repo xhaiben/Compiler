@@ -1,6 +1,7 @@
 import cacher.lexer.InputSystem;
 import cacher.lexer.Lexer;
 import cacher.lexer.Token;
+import cacher.parser.Parser;
 
 import java.io.File;
 
@@ -15,8 +16,10 @@ public class Main {
         inputSystem.readFromFile(file);
         Lexer lexer = new Lexer(inputSystem);
         lexer.lex();
-        for (Token token : lexer.getTokenList()) {
-            System.out.println(token.getTag());
-        }
+//        for (Token token : lexer.getTokenList()) {
+//            System.out.println(token.getTag());
+//        }
+        Parser parser = new Parser(lexer.getTokenList());
+        parser.parse();
     }
 }
