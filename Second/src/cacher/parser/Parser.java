@@ -1,6 +1,7 @@
 package cacher.parser;
 
 import cacher.lexer.Id;
+import cacher.lexer.Lexer;
 import cacher.lexer.Tag;
 import cacher.lexer.Token;
 
@@ -16,6 +17,11 @@ public class Parser {
     private Token cur_token;
     private int p_token = 0;
     private int compileOK = 0;
+    private Lexer lexer;
+
+    public Parser(Lexer lexer) {
+        this.lexer = lexer;
+    }
 
     public Parser(List<Token> tokenList) {
         this.tokenList = tokenList;
