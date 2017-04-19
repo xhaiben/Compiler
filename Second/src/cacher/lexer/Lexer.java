@@ -1,7 +1,11 @@
 package cacher.lexer;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 /*
  * Created by xhaiben on 2017/3/11.
@@ -13,14 +17,65 @@ public class Lexer {
 
     private List<Token> tokenList;
 
+    private File source_file;
+    private Scanner source_scanner;
+    private char old_char;
+    private char cur_char;
+    private int line_num = 0;//行号
+    private int char_at_line = 0;//字符在列的位置
+    private int line_len = 0;//当前行的长度
+
+    private String cur_line;
+
     public Lexer(InputSystem inputSystem) {
         this.inputSystem = inputSystem;
         tokenList = new ArrayList<>();
     }
 
+    public Lexer(File file) {
+        try {
+            this.source_file = file;
+            InputStreamReader inputStreamReader = new InputStreamReader(new FileInputStream(this.source_file), "UTF-8");
+            this.source_scanner = new Scanner(inputStreamReader);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     public List<Token> getTokenList() {
         return tokenList;
     }
+
+    private int next_line() {
+        if (source_scanner.hasNextLine()) {
+            cur_line = source_scanner.nextLine() + "\n";
+            line_len = cur_line.length();
+            return 0;
+        } else {
+            return -1;
+        }
+    }
+
+    private int getChar() {
+        if (char_at_line >= line_len) {
+            char_at_line = 0;
+            line_len = 0;
+            line_num++;
+            cur_char = '\0';
+            if (next_line() == -1) {  //文件结束
+                cur_line = "";
+            }
+        }
+        old_char = cur_char;
+        try {
+            cur_char = cur_line.charAt(char_at_line);
+            char_at_line++;
+            return 0;
+        } catch (IndexOutOfBoundsException e) {
+            return -1;
+        }
+    }
+
 
     public void lex() {
         while (inputSystem.hasNext()) {
