@@ -15,19 +15,6 @@ import java.util.Scanner;
 
 public class Lexer {
 
-    private InputSystem inputSystem;
-
-    private List<Token> tokenList;
-
-    public Lexer(InputSystem inputSystem) {
-        this.inputSystem = inputSystem;
-        tokenList = new ArrayList<>();
-    }
-
-    public List<Token> getTokenList() {
-        return tokenList;
-    }
-
     private int line_num = 0;//行号
     private int line_col = 0;//行内列号
     private char cur_char = ' ';//当前字符
