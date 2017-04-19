@@ -7,6 +7,7 @@ import java.util.HashMap;
  */
 public class Keywords {
     private static HashMap<String, Tag> keywordMap;
+
     static {
         keywordMap = new HashMap<>();
         keywordMap.put("char", Tag.KW_CHAR);
@@ -26,7 +27,10 @@ public class Keywords {
         keywordMap.put("default", Tag.KW_DEFAULT);
         keywordMap.put("do", Tag.KW_DO);
         keywordMap.put("while", Tag.KW_WHILE);
-        keywordMap.put("extern",Tag.KW_EXTERN);
+        keywordMap.put("extern", Tag.KW_EXTERN);
+        keywordMap.put("in", Tag.KW_IN);
+        keywordMap.put("out", Tag.KW_OUT);
+        keywordMap.put("string", Tag.KW_STRING);
     }
 
     public static Tag getTag(String name) {

@@ -23,6 +23,9 @@ public enum Tag {
     TK_GEQ, // >= 大于等于
     TK_ASSIGN, // = 赋值
 
+    TK_IN_PUT, // >> 输入
+    TK_OUT_PUT, // << 输出
+
     TK_POINT_TO, // -> 指向结构体成员运算符
     TK_DOT, // . 结构体成员运算符
 
@@ -53,6 +56,7 @@ public enum Tag {
 //    KW_SHORT, //short
     KW_INT, // INT
     KW_VOID, // void
+    KW_STRING, //string
 //    KW_STRUCT, //struct
     KW_IF, // if
     KW_ELSE, //else
@@ -67,6 +71,8 @@ public enum Tag {
     KW_DO, // do
     KW_WHILE, // while
     KW_EXTERN, // extern
+    KW_IN, // input
+    KW_OUT, //output
 
     KW_ALIGN, // __align
     KW_CDECL, // __cdecl

@@ -50,7 +50,7 @@ public class Lexer {
             } else if (Character.isDigit(ch)) { // 数字
                 int val = 0;
                 if (ch != '0') {//十进制
-                    if(inputSystem.hasNext()){
+                    if (inputSystem.hasNext()) {
                         do {
                             val += val * 10 + ch - '0';
                             ch = inputSystem.nextChar();
@@ -259,10 +259,22 @@ public class Lexer {
                     token = new Token(Tag.TK_MOD);
                     break;
                 case '>':
-                    token = new Token(inputSystem.nextChar('=') ? Tag.TK_GEQ : Tag.TK_GT);
+                    if (inputSystem.nextChar('=')) {
+                        token = new Token(Tag.TK_GEQ);
+                    } else if (inputSystem.nextChar('>')) {
+                        token = new Token(Tag.TK_IN_PUT);
+                    } else {
+                        token = new Token(Tag.TK_GT);
+                    }
                     break;
                 case '<':
-                    token = new Token(inputSystem.nextChar('=') ? Tag.TK_LEQ : Tag.TK_LT);
+                    if (inputSystem.nextChar('=')) {
+                        token = new Token(Tag.TK_LEQ);
+                    } else if (inputSystem.nextChar('<')) {
+                        token = new Token(Tag.TK_OUT_PUT);
+                    } else {
+                        token = new Token(Tag.TK_LT);
+                    }
                     break;
                 case '=':
                     token = new Token(inputSystem.nextChar('=') ? Tag.TK_EQ : Tag.TK_ASSIGN);
