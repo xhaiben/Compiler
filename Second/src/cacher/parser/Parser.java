@@ -22,6 +22,8 @@ public class Parser {
     }
 
     private void back() {
+        token = old_token;
+        old_token = null;
         wait = 1;
     }
 
@@ -66,7 +68,7 @@ public class Parser {
 
     private void dec() {
         if (token.getTag() == Tag.TK_SEMICOLON) {
-            return;
+
         } else if (token.getTag() == Tag.KW_EXTERN) {
 
         } else {
