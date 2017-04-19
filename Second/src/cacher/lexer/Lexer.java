@@ -1,5 +1,7 @@
 package cacher.lexer;
 
+import com.sun.org.apache.xpath.internal.SourceTree;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
@@ -13,90 +15,83 @@ import java.util.Scanner;
 
 public class Lexer {
 
-    public InputSystem getInputSystem() {
-        return inputSystem;
-    }
-
     private InputSystem inputSystem;
 
     private List<Token> tokenList;
-
-    private File source_file;
-    private Scanner source_scanner;
-    private char old_char;
-    private char cur_char;
-    private int line_num = 0;//行号
-    private int char_at_line = 0;//字符在列的位置
-    private int line_len = 0;//当前行的长度
-
-    private String cur_line;
 
     public Lexer(InputSystem inputSystem) {
         this.inputSystem = inputSystem;
         tokenList = new ArrayList<>();
     }
 
+    public List<Token> getTokenList() {
+        return tokenList;
+    }
+
+    private int line_num = 0;//行号
+    private int line_col = 0;//行内列号
+    private char cur_char = ' ';//当前字符
+    private char old_char = ' ';//前一个字符
+    private String cur_line = "";//当前行
+    private Scanner scanner;
+
     public Lexer(File file) {
         try {
-            this.source_file = file;
-            InputStreamReader inputStreamReader = new InputStreamReader(new FileInputStream(this.source_file), "UTF-8");
-            this.source_scanner = new Scanner(inputStreamReader);
+            FileInputStream fileInputStream = new FileInputStream(file);
+            InputStreamReader inputStreamReader = new InputStreamReader(fileInputStream, "UTF-8");
+            this.scanner = new Scanner(inputStreamReader);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    public List<Token> getTokenList() {
-        return tokenList;
-    }
-
-    private int next_line() {
-        if (source_scanner.hasNextLine()) {
-            cur_line = source_scanner.nextLine() + "\n";
-            line_len = cur_line.length();
-            return 0;
+    private void getNextLine() {
+        if (scanner.hasNextLine()) {
+            cur_line = scanner.nextLine() + "\n";
         } else {
-            return -1;
+            cur_line = "";
         }
     }
 
-    private int getChar() {
-        if (char_at_line >= line_len) {
-            char_at_line = 0;
-            line_len = 0;
+    private void getChar() {
+        if (line_col >= cur_line.length()) {
             line_num++;
-            cur_char = '\0';
-            if (next_line() == -1) {  //文件结束
-                cur_line = "";
-            }
+            line_col = 0;
+            getNextLine();
         }
-        old_char = cur_char;
         try {
-            cur_char = cur_line.charAt(char_at_line);
-            char_at_line++;
-            return 0;
+            old_char = cur_char;
+            cur_char = cur_line.charAt(line_col);
+            line_col++;
         } catch (IndexOutOfBoundsException e) {
-            return -1;
+            cur_char = 0;
         }
     }
 
+    private boolean getChar(char need) {
+        getChar();
+        if (cur_char != need) {
+            return false;
+        }
+        getChar();
+        return true;
+    }
 
-    public Token getToken() {
-        while (inputSystem.hasNext()) {
+    public Token lex() {
+        while (cur_char != 0) {
             Token token = null;
-            char ch = inputSystem.nextChar();
             //忽略空白符
-            while (ch == ' ' || ch == '\n' || ch == '\t') {
-                ch = inputSystem.nextChar();
+            while (cur_char == ' ' || cur_char == '\n' || cur_char == '\t') {
+                getChar();
             }
 
-            if (Character.isAlphabetic(ch) || ch == '_') { //标识符或关键字
+            if (Character.isAlphabetic(cur_char) || cur_char == '_') { //标识符或关键字
                 StringBuilder name = new StringBuilder();
                 do {
-                    name.append(ch);
-                    ch = inputSystem.nextChar();
+                    name.append(cur_char);
+                    getChar();
                 }
-                while ((Character.isAlphabetic(ch) || Character.isDigit(ch) || ch == '_') && inputSystem.hasNext());
+                while (Character.isAlphabetic(cur_char) || Character.isDigit(cur_char) || cur_char == '_');
                 Tag tag = Keywords.getTag(name.toString());
                 if (tag == Tag.TK_IDENT) {
                     // 标识符
@@ -105,232 +100,150 @@ public class Lexer {
                     // 关键字
                     token = new Token(tag);
                 }
-                tokenList.add(token);
-//                return token;
-            } else if (Character.isDigit(ch)) { // 数字
+            } else if (Character.isDigit(cur_char)) { // 数字
                 int val = 0;
-                if (ch != '0') {//十进制
-                    if (inputSystem.hasNext()) {
-                        do {
-                            val += val * 10 + ch - '0';
-                            ch = inputSystem.nextChar();
-                        } while (Character.isDigit(ch) && inputSystem.hasNext());
-                    }
-                } else if (inputSystem.hasNext()) {
-                    ch = inputSystem.nextChar();
-                    if (ch == 'x') {//十六进制
-                        if (inputSystem.hasNext()) {
-                            ch = inputSystem.nextChar();
-                            if ((Character.isDigit(ch) || ch >= 'A' && ch <= 'F' || ch >= 'a' && ch <= 'f') && inputSystem.hasNext()) {
-                                do {
-                                    val = val * 16 + ch;
-                                    if (Character.isDigit(ch)) {
-                                        val -= '0';
-                                    } else if (ch >= 'A' && ch <= 'F') {
-                                        val -= 'A';
-                                    } else if (ch >= 'a' && ch <= 'f') {
-                                        val -= 'a';
-                                    }
-                                    ch = inputSystem.nextChar();
+                if (cur_char != '0') {//十进制
+                    do {
+                        val += val * 10 + cur_char - '0';
+                        getChar();
+                    } while (Character.isDigit(cur_char));
+                } else {
+                    getChar();
+                    if (cur_char == 'x') {//十六进制
+                        getChar();
+                        if (Character.isDigit(cur_char) || cur_char >= 'A' && cur_char <= 'F' || cur_char >= 'a' && cur_char <= 'f') {
+                            do {
+                                val = val * 16 + cur_char;
+                                if (Character.isDigit(cur_char)) {
+                                    val -= '0';
+                                } else if (cur_char >= 'A' && cur_char <= 'F') {
+                                    val -= 'A';
+                                } else if (cur_char >= 'a' && cur_char <= 'f') {
+                                    val -= 'a';
                                 }
-                                while ((Character.isDigit(ch) || ch >= 'A' && ch <= 'F' || ch >= 'a' && ch <= 'f') && inputSystem.hasNext());
-                            } else {
-                                //0x后无数据
-                                token = new Token(Tag.ERR);
-                                lexError(LexError.NUM_HEX_TYPE);
-                                break;
-//                            token = new Token(Tag.ERR);
-//                            tokenList.add(token);
+                                getChar();
                             }
+                            while (Character.isDigit(cur_char) || cur_char >= 'A' && cur_char <= 'F' || cur_char >= 'a' && cur_char <= 'f');
                         } else {
                             //0x后无数据
-                            token = new Token(Tag.ERR);
                             lexError(LexError.NUM_HEX_TYPE);
-                            break;
-//                            return null;
+                            token = new Token(Tag.ERR);
                         }
-                    } else if (ch == 'b' && inputSystem.hasNext()) { // 二进制
-                        ch = inputSystem.nextChar();
-                        if (ch >= '0' && ch <= '1' && inputSystem.hasNext()) {
+                    } else if (cur_char == 'b') { // 二进制
+                        getChar();
+                        if (cur_char >= '0' && cur_char <= '1') {
                             do {
-                                val = val * 2 + ch - '0';
-                                ch = inputSystem.nextChar();
-                            } while (ch >= '0' && ch <= '1' && inputSystem.hasNext());
+                                val = val * 2 + cur_char - '0';
+                                getChar();
+                            } while (cur_char >= '0' && cur_char <= '1');
                         } else {
                             // 0b后无数据
-                            token = new Token(Tag.ERR);
                             lexError(LexError.NUM_BIN_TYPE);
-                            break;
-//                            return null;
-//                            token = new Token(Tag.ERR);
-//                            tokenList.add(token);
+                            token = new Token(Tag.ERR);
                         }
-                    } else if (ch >= '0' && ch <= '7' && inputSystem.hasNext()) {
+                    } else if (cur_char >= '0' && cur_char <= '7') {
                         do {
-                            val = val * 8 + ch - '0';
-                            ch = inputSystem.nextChar();
-                        } while (ch >= '0' && ch <= '7' && inputSystem.hasNext());
+                            val = val * 8 + cur_char - '0';
+                            getChar();
+                        } while (cur_char >= '0' && cur_char <= '7');
                     }
                 }
-                token = new Num(val);
-                tokenList.add(token);
-                if (!inputSystem.hasNext()) {
-                    tokenList.add(new Token(Tag.TK_EOF));
-                    break;
+                if (token == null) {
+                    token = new Num(val);
                 }
-//                return token;
-            } else if (ch == '\'') { //字符常量
+            } else if (cur_char == '\'') { //字符常量
                 char c = 0;
-                if (inputSystem.hasNext()) {
-                    ch = inputSystem.nextChar();
-                    if (ch == '\\' && inputSystem.hasNext()) { //如果是转义符
-                        ch = inputSystem.nextChar();
-                        if (ch == 'n') c = '\n';
-                        else if (ch == '\\') c = '\\';
-                        else if (ch == 't') c = '\t';
-                        else if (ch == '0') c = '\0';
-                        else if (ch == '\'') c = '\'';
-                        else if (ch == '\n') {
-                            token = new Token(Tag.ERR);
-                            lexError(LexError.CHAR_NO_R_QUTION);
-                            break;
-//                            return null;
-                        } else {
-                            c = ch;
-                        }
-                    } else if (ch == '\n') {
-                        token = new Token(Tag.ERR);
+                getChar();
+                if (cur_char == '\\') { //如果是转义符
+                    getChar();
+                    if (cur_char == 'n') c = '\n';
+                    else if (cur_char == '\\') c = '\\';
+                    else if (cur_char == 't') c = '\t';
+                    else if (cur_char == '0') c = '\0';
+                    else if (cur_char == '\'') c = '\'';
+                    else if (cur_char == '\n' || cur_char == 0) {
                         lexError(LexError.CHAR_NO_R_QUTION);
-                        break;
-//                        return null;
-                    } else if (ch == '\'') { //空数据
                         token = new Token(Tag.ERR);
-                        lexError(LexError.CHAR_NO_DATA);
-                        break;
-//                        return null;
-//                        if (inputSystem.hasNext()) {
-//                            ch = inputSystem.nextChar();
-//                        }
                     } else {
-                        c = ch;
+                        c = cur_char;
                     }
-                    if (inputSystem.hasNext()) {
-                        ch = inputSystem.nextChar();
-                        if (ch == '\'' && c != 0) {
-                            token = new Char(c);
-                        } else {
-                            token = new Token(Tag.ERR);
-                            lexError(LexError.CHAR_NO_R_QUTION);
-                            break;
-//                            return null;
-                        }
-                    } else {
-                        token = new Token(Tag.ERR);
-                        lexError(LexError.CHAR_NO_R_QUTION);
-                        break;
-//                        return null;
-                    }
-                } else {
+                } else if (cur_char == '\n' || cur_char == 0) {
                     token = new Token(Tag.ERR);
                     lexError(LexError.CHAR_NO_R_QUTION);
-                    break;
-//                    return null;
-                }
-                tokenList.add(token);
-                if (!inputSystem.hasNext()) {
-                    tokenList.add(new Token(Tag.TK_EOF));
-                    break;
-                }
-//                return token;
-            } else if (ch == '"') { //字符串常量
-                if (inputSystem.hasNext()) {
-                    StringBuilder stringBuilder = new StringBuilder();
-                    ch = inputSystem.nextChar();
-                    while (ch != '"' && inputSystem.hasNext()) {
-                        if (ch == '\\') {
-                            ch = inputSystem.nextChar();
-                            if (ch == 'n') stringBuilder.append('\n');
-                            else if (ch == '\\') stringBuilder.append('\\');
-                            else if (ch == 't') stringBuilder.append('\t');
-                            else if (ch == '"') stringBuilder.append('"');
-                            else if (ch == '0') stringBuilder.append("\0");
-                            else if (ch == '\n') ;
-                            else if (!inputSystem.hasNext()) {
-                                token = new Token(Tag.ERR);
-                                lexError(LexError.STR_NO_R_QUTION);
-                                break;
-//                                return null;
-//                                token = new Token(Tag.ERR);
-//                                tokenList.add(token);
-
-                            }
-                        } else if (ch == '\n' || !inputSystem.hasNext()) {
-                            token = new Token(Tag.ERR);
-                            lexError(LexError.STR_NO_R_QUTION);
-                            break;
-//                            return null;
-//                            token = new Token(Tag.ERR);
-//
-//                            tokenList.add(token);
-
-                        } else {
-                            stringBuilder.append(ch);
-                        }
-                        ch = inputSystem.nextChar();
-                    }
-                    token = new Str(stringBuilder.toString());
-                    tokenList.add(token);
-//                    return token;
-                }
-                if (inputSystem.hasNext()) {
-                    ch = inputSystem.nextChar();
+                } else if (cur_char == '\'') { //空数据
+                    token = new Token(Tag.ERR);
+                    lexError(LexError.CHAR_NO_DATA);
+                    getChar();
                 } else {
-                    token = new Token(Tag.TK_EOF);
-                    tokenList.add(token);
-//                    return token;
+                    c = cur_char;
+                }
+                if (token == null) {
+                    if (getChar('\'')) {
+                        token = new Char(c);
+                    } else {
+                        token = new Token(Tag.ERR);
+                        lexError(LexError.CHAR_NO_R_QUTION);
+                    }
+                }
+            } else if (cur_char == '"') { //字符串常量
+                StringBuilder stringBuilder = new StringBuilder();
+                while (!getChar('"')) {
+                    if (cur_char == '\\') {
+                        getChar();
+                        if (cur_char == 'n') stringBuilder.append('\n');
+                        else if (cur_char == '\\') stringBuilder.append('\\');
+                        else if (cur_char == 't') stringBuilder.append('\t');
+                        else if (cur_char == '"') stringBuilder.append('"');
+                        else if (cur_char == '0') stringBuilder.append("\0");
+                        else if (cur_char == '\n') ;
+                        else if (cur_char == 0) {
+                            lexError(LexError.STR_NO_R_QUTION);
+                            token = new Token(Tag.ERR);
+                            break;
+                        } else {
+                            stringBuilder.append(cur_char);
+                        }
+                    } else if (cur_char == '\n' || cur_char == 0) {
+                        lexError(LexError.STR_NO_R_QUTION);
+                        token = new Token(Tag.ERR);
+                        break;
+                    } else {
+                        stringBuilder.append(cur_char);
+                    }
+                }
+                if (token == null) {
+                    token = new Str(stringBuilder.toString());
                 }
             } else {
-                switch (ch) {
+                switch (cur_char) {
                     case '+':
-                        token = new Token(inputSystem.nextChar('+') ? Tag.TK_INC : Tag.TK_PLUS);
+                        token = new Token(getChar('+') ? Tag.TK_INC : Tag.TK_PLUS);
                         break;
                     case '-':
-                        token = new Token(inputSystem.nextChar('-') ? Tag.TK_DEC : Tag.TK_MINUS);
+                        token = new Token(getChar('-') ? Tag.TK_DEC : Tag.TK_MINUS);
                         break;
                     case '*':
                         token = new Token(Tag.TK_STAR);
+                        getChar();
                         break;
                     case '/':
-                        if (inputSystem.hasNext()) {
-                            ch = inputSystem.nextChar();
-                            if (ch == '/') {
-                                while (ch != '\n' && inputSystem.hasNext()) {
-                                    ch = inputSystem.nextChar();
-                                }
-                                token = new Token(Tag.ERR);
-                            } else if (ch == '*') {
-                                while (inputSystem.hasNext()) {
-                                    ch = inputSystem.nextChar();
-                                    if (ch == '*') {
-                                        while (inputSystem.nextChar('*') && inputSystem.hasNext()) ;
-                                        if (inputSystem.hasNext()) {
-                                            ch = inputSystem.nextChar();
-                                            if (ch == '/') { //注释正常结束
-                                                token = new Token(Tag.ERR);
-                                                tokenList.add(token);
-//                                            return token;
-                                            }
-                                        }
+                        getChar();
+                        if (cur_char == '/') {
+                            while (cur_char != '\n' && cur_char != 0) {
+                                getChar();
+                            }
+                            token = new Token(Tag.ERR);
+                        } else if (cur_char == '*') {
+                            while (!getChar('\0')) {
+                                if (cur_char == '*') {
+                                    if (getChar('/')) {
+                                        break;
                                     }
                                 }
-                                if (token == null) {
-                                    token = new Token(Tag.ERR);
-                                    lexError(LexError.COMMENT_NO_END);
-//                                return null;
-//                                token = new Token(Tag.ERR);
-                                }
-                            } else {
-                                token = new Token(Tag.TK_DIVIDE);
+                            }
+                            if (cur_char == 0) {
+                                lexError(LexError.COMMENT_NO_END);
+                                token = new Token(Tag.ERR);
                             }
                         } else {
                             token = new Token(Tag.TK_DIVIDE);
@@ -338,87 +251,92 @@ public class Lexer {
                         break;
                     case '%':
                         token = new Token(Tag.TK_MOD);
+                        getChar();
                         break;
                     case '>':
-                        if (inputSystem.nextChar('=')) {
+                        if (getChar('=')) {
                             token = new Token(Tag.TK_GEQ);
-                        } else if (inputSystem.nextChar('>')) {
+                        } else if (getChar('>')) {
                             token = new Token(Tag.TK_IN_PUT);
                         } else {
                             token = new Token(Tag.TK_GT);
                         }
                         break;
                     case '<':
-                        if (inputSystem.nextChar('=')) {
+                        if (getChar('=')) {
                             token = new Token(Tag.TK_LEQ);
-                        } else if (inputSystem.nextChar('<')) {
+                        } else if (getChar('<')) {
                             token = new Token(Tag.TK_OUT_PUT);
                         } else {
                             token = new Token(Tag.TK_LT);
                         }
                         break;
                     case '=':
-                        token = new Token(inputSystem.nextChar('=') ? Tag.TK_EQ : Tag.TK_ASSIGN);
+                        token = new Token(getChar('=') ? Tag.TK_EQ : Tag.TK_ASSIGN);
                         break;
-                    case '&':
-                        token = new Token(inputSystem.nextChar('&') ? Tag.TK_AND : Tag.TK_LEA);
-                        break;
-                    case '|':
-                        token = new Token(inputSystem.nextChar('|') ? Tag.TK_OR : Tag.ERR);
-                        if (token.getTag() == Tag.ERR) {
-                            token = new Token(Tag.ERR);
-                            lexError(LexError.OR_NO_PAIR);
-//                        return null;
-                        }
-                        break;
+//                    case '&':
+//                        token = new Token(getChar('&') ? Tag.TK_AND : Tag.TK_LEA);
+//                        break;
+//                    case '|':
+//                        token = new Token(inputSystem.nextChar('|') ? Tag.TK_OR : Tag.ERR);
+//                        if (token.getTag() == Tag.ERR) {
+//                            lexError(LexError.OR_NO_PAIR);
+//                            return;
+//                        }
+//                        break;
                     case '!':
-                        token = new Token(inputSystem.nextChar('=') ? Tag.TK_NEQ : Tag.TK_NOT);
+                        token = new Token(getChar('=') ? Tag.TK_NEQ : Tag.TK_NOT);
                         break;
                     case ':':
                         token = new Token(Tag.TK_COLON);
+                        getChar();
                         break;
                     case ',':
                         token = new Token(Tag.TK_COMMA);
+                        getChar();
                         break;
                     case ';':
                         token = new Token(Tag.TK_SEMICOLON);
+                        getChar();
                         break;
                     case '(':
                         token = new Token(Tag.TK_OPEN_PA);
+                        getChar();
                         break;
                     case ')':
                         token = new Token(Tag.TK_CLOSE_PA);
+                        getChar();
                         break;
                     case '[':
                         token = new Token(Tag.TK_OPEN_BR);
+                        getChar();
                         break;
                     case ']':
                         token = new Token(Tag.TK_CLOSE_BR);
+                        getChar();
                         break;
                     case '{':
                         token = new Token(Tag.TK_LBRACE);
+                        getChar();
                         break;
                     case '}':
                         token = new Token(Tag.TK_RBRACE);
+                        getChar();
                         break;
-                    case '.':
-                        token = new Token(Tag.TK_DOT);
-                        break;
-                    case ' ':
-
-                    case '\n':
-
-                    case '\t':
+//                    case '.':
+//                        token = new Token(Tag.TK_DOT);
+//                        break;
+                    case 0:
+                        getChar();
                         break;
                     default:
                         token = new Token(Tag.ERR);
                         lexError(LexError.TOKEN_NO_EXIST);
-//                    return null;
+                        getChar();
                         break;
                 }
             }
-            if (token != null) {
-                tokenList.add(token);
+            if (token != null && token.getTag() != Tag.ERR) {
                 return token;
             }
         }
@@ -436,7 +354,8 @@ public class Lexer {
                 "多行注释没有正常结束",
                 "词法记号不存在"
         };
-        System.out.println(new StringBuilder().append("第 ").append(inputSystem.getLine_no()).append(" 行"));
+        System.out.print(new StringBuilder().append("第 ").append(line_num).append(" 行"));
+        System.out.println(new StringBuilder("，第 ").append(line_col).append(" 列"));
         System.out.println(lexErrorTable[lexError.ordinal()]);
     }
 }
