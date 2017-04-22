@@ -11,35 +11,22 @@ import java.util.List;
  * Created by xhaiben on 2017/4/8.
  */
 public class Parser {
-    private List<Token> tokenList;
     private Token old_token, token;
     private int wait = 0;
-    private Token cur_token;
     private int p_token = 0;
     private int compileOK = 0;
     private Lexer lexer;
+
+    private int ident_in_expr = 0;
 
     public Parser(Lexer lexer) {
         this.lexer = lexer;
     }
 
-    public Parser(List<Token> tokenList) {
-        this.tokenList = tokenList;
-    }
-
     private void back() {
-        token = old_token;
-        old_token = null;
+//        token = old_token;
+//        old_token = null;
         wait = 1;
-    }
-
-    private int getToken() {
-        if (p_token < tokenList.size()) {
-            cur_token = tokenList.get(p_token++);
-            return 1;
-        } else {
-            return -1;
-        }
     }
 
     private int nextToken() {
@@ -47,25 +34,24 @@ public class Parser {
             wait = 0;
             return 0;
         }
-        int flag = getToken();
-        while (true) {
-            if (cur_token.getTag() == Tag.ERR) {
-                if (flag == -1) {
-                    old_token = token;
-                    token = null;
-                    return -1;
-                }
-            } else {
-                old_token = token;
-                token = cur_token;
-                return 0;
-            }
+        Token cur_token = lexer.lex();
+        if (cur_token.getTag() == Tag.TK_EOF) {
+            old_token = token;
+            token = new Token(Tag.NULL);
+            return -1;
         }
+        old_token = token;
+        token = cur_token;
+        return 0;
+    }
+
+    public void parse() {
+        program();
     }
 
     private void program() {
         if (nextToken() == -1) {
-
+            //到达文件末尾
         } else {
             dec();
             program();
@@ -74,9 +60,25 @@ public class Parser {
 
     private void dec() {
         if (token.getTag() == Tag.TK_SEMICOLON) {
-
+            return;
         } else if (token.getTag() == Tag.KW_EXTERN) {
-
+            nextToken();
+            type();
+            nextToken();
+            if (token.getTag() != Tag.TK_IDENT) {
+                back();
+            } else {
+                //声明标识符
+            }
+            nextToken();
+            if (token.getTag() != Tag.TK_SEMICOLON) {
+                if (token.getTag() == Tag.KW_EXTERN || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
+                    //丢失分号
+                    back();
+                } else {
+                    //分号错误
+                }
+            }
         } else {
             String dec_name = "";
             Tag dec_type = type();
@@ -134,6 +136,7 @@ public class Parser {
         if (token.getTag() == Tag.TK_SEMICOLON) { //函数声明
             return;
         } else if (token.getTag() == Tag.TK_LBRACE) { //函数定义
+            back();
             block(0, 0, 0);
             fun_level = 0;
             return;
@@ -143,6 +146,7 @@ public class Parser {
             fun_level = 0;
             return;
         } else if (token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR) {
+            back();
             return;
         } else {
             return;
@@ -154,6 +158,7 @@ public class Parser {
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
                 //错误
+                back();
             } else {
                 String dec_name = "";
                 dec_name += ((Id) token).getName();
@@ -239,6 +244,8 @@ public class Parser {
 
     }
 
+    private int r_brac_is_lost = 0;
+
     private void childprogram() {
         nextToken();
         if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT) {
@@ -246,17 +253,25 @@ public class Parser {
             childprogram();
         } else if (token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
             localdec();
-
-        } else if (token.getTag() == Tag.TK_RBRACE) {
+            if (r_brac_is_lost == 1) {
+                r_brac_is_lost = 0;
+            } else {
+                childprogram();
+            }
+        } else if (token.getTag() == Tag.TK_RBRACE) { //复合语句结尾
             return;
+        } else if (token == null) {
+            //右花括号丢失
         } else {
-
+            //语句异常
         }
     }
 
     private void localdec() {
+        type();
         nextToken();
         if (token.getTag() != Tag.TK_IDENT) {
+            //标识符不匹配
             back();
         } else {
             //定义局部变量
@@ -284,6 +299,7 @@ public class Parser {
         } else if (token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING || token.getTag() == Tag.TK_RBRACE) {
             back();
         } else if (token.getTag() == Tag.TK_OPEN_PA) {
+            r_brac_is_lost = 1;
             para();
             block(0, 0, 0);
         } else {
@@ -309,6 +325,7 @@ public class Parser {
                 } else if (token.getTag() != Tag.TK_SEMICOLON) {
                     //分号错误
                 }
+                //生成break
                 break;
             case KW_CONTINUE:
                 nextToken();
@@ -318,6 +335,7 @@ public class Parser {
                 } else if (token.getTag() != Tag.TK_SEMICOLON) {
                     //分号错误
                 }
+                //生成continue
                 break;
             case KW_RETURN:
                 retstat();
@@ -344,6 +362,7 @@ public class Parser {
                     //输出错误
                 }
                 //输出
+                expr();
                 nextToken();
                 if (token.getTag() != Tag.TK_SEMICOLON) {
                     //无效输出
@@ -459,6 +478,9 @@ public class Parser {
                 //右括号缺失
                 back();
             }
+        } else if (ident_in_expr == 1) {
+            ident_in_expr = 0;
+            back();
         } else {
 
         }
@@ -611,10 +633,12 @@ public class Parser {
         }
     }
 
+
     private void factor() {
         nextToken();
         switch (token.getTag()) {
             case TK_IDENT:
+                ident_in_expr = 1;
                 idtail();
                 break;
             case TK_C_NUM:

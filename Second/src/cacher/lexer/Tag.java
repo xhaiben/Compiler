@@ -83,5 +83,6 @@ public enum Tag {
     TK_IDENT,
 
     /*错误*/
-    ERR
+    ERR,
+    NULL
 }

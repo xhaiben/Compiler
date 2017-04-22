@@ -241,22 +241,51 @@ public class Lexer {
                         getChar();
                         break;
                     case '>':
-                        if (getChar('=')) {
-                            token = new Token(Tag.TK_GEQ);
-                        } else if (getChar('>')) {
-                            token = new Token(Tag.TK_IN_PUT);
-                        } else {
-                            token = new Token(Tag.TK_GT);
+                        getChar();
+                        switch (cur_char) {
+                            case '=':
+                                token = new Token(Tag.TK_GEQ);
+                                getChar();
+                                break;
+                            case '>':
+                                token = new Token(Tag.TK_IN_PUT);
+                                getChar();
+                                break;
+                            default:
+                                token = new Token(Tag.TK_GT);
+                                break;
                         }
                         break;
+//                        if (getChar('=')) {
+//                            token = new Token(Tag.TK_GEQ);
+//                        } else if (getChar('>')) {
+//                            token = new Token(Tag.TK_IN_PUT);
+//                        } else {
+//                            token = new Token(Tag.TK_GT);
+//                        }
+//                        break;
                     case '<':
-                        if (getChar('=')) {
-                            token = new Token(Tag.TK_LEQ);
-                        } else if (getChar('<')) {
-                            token = new Token(Tag.TK_OUT_PUT);
-                        } else {
-                            token = new Token(Tag.TK_LT);
+                        getChar();
+                        switch (cur_char) {
+                            case '=':
+                                token = new Token(Tag.TK_LEQ);
+                                getChar();
+                                break;
+                            case '<':
+                                token = new Token(Tag.TK_OUT_PUT);
+                                getChar();
+                                break;
+                            default:
+                                token = new Token(Tag.TK_LT);
+                                break;
                         }
+//                        if (getChar('=')) {
+//                            token = new Token(Tag.TK_LEQ);
+//                        } else if (getChar('<')) {
+//                            token = new Token(Tag.TK_OUT_PUT);
+//                        } else {
+//                            token = new Token(Tag.TK_LT);
+//                        }
                         break;
                     case '=':
                         token = new Token(getChar('=') ? Tag.TK_EQ : Tag.TK_ASSIGN);

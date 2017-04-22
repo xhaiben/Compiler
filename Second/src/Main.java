@@ -2,6 +2,7 @@ import cacher.lexer.InputSystem;
 import cacher.lexer.Lexer;
 import cacher.lexer.Tag;
 import cacher.lexer.Token;
+import cacher.parser.Parser;
 
 import java.io.File;
 
@@ -15,14 +16,14 @@ public class Main {
         File file = new File("D:\\IdeaProjects\\Compiler\\test2.c");
         inputSystem.readFromFile(file);
         Lexer lexer = new Lexer(file);
-        while (true) {
-            Token token = lexer.lex();
-            System.out.println(token.getTag());
-            if (token.getTag() == Tag.TK_EOF) {
-                break;
-            }
-        }
-//        Parser parser = new Parser(lexer.getTokenList());
-//        parser.parse();
+//        while (true) {
+//            Token token = lexer.lex();
+//            System.out.println(token.getTag());
+//            if (token.getTag() == Tag.TK_EOF) {
+//                break;
+//            }
+//        }
+        Parser parser = new Parser(lexer);
+        parser.parse();
     }
 }

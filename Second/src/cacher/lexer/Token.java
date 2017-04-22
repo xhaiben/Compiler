@@ -7,7 +7,7 @@ package cacher.lexer;
 public class Token {
     private Tag tag;
 
-    Token(Tag tag) {
+    public Token(Tag tag) {
         this.tag = tag;
     }
 
