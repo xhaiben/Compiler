@@ -15,6 +15,14 @@ import java.util.Scanner;
 
 public class Lexer {
 
+    public int getLine_num() {
+        return line_num;
+    }
+
+    public int getLine_col() {
+        return line_col;
+    }
+
     private int line_num = 0;//行号
     private int line_col = 0;//行内列号
     private char cur_char = ' ';//当前字符
