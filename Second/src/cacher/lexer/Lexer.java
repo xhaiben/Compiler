@@ -1,19 +1,25 @@
 package cacher.lexer;
 
-import com.sun.org.apache.xpath.internal.SourceTree;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Scanner;
+
+import cacher.error.Error;
 
 /*
  * Created by xhaiben on 2017/3/11.
  */
 
 public class Lexer {
+
+
+    private int line_num = 0;//行号
+    private int line_col = 0;//行内列号
+    private char cur_char = ' ';//当前字符
+    private char old_char = ' ';//前一个字符
+    private String cur_line = "";//当前行
+    private Scanner scanner;
 
     public int getLine_num() {
         return line_num;
@@ -22,13 +28,6 @@ public class Lexer {
     public int getLine_col() {
         return line_col;
     }
-
-    private int line_num = 0;//行号
-    private int line_col = 0;//行内列号
-    private char cur_char = ' ';//当前字符
-    private char old_char = ' ';//前一个字符
-    private String cur_line = "";//当前行
-    private Scanner scanner;
 
     public Lexer(File file) {
         try {
@@ -121,7 +120,7 @@ public class Lexer {
                             while (Character.isDigit(cur_char) || cur_char >= 'A' && cur_char <= 'F' || cur_char >= 'a' && cur_char <= 'f');
                         } else {
                             //0x后无数据
-                            lexError(LexError.NUM_HEX_TYPE);
+                            Error.LexError.lexError(Error.LexError.NUM_HEX_TYPE, line_num, line_col);
                             token = new Token(Tag.ERR);
                         }
                     } else if (cur_char == 'b') { // 二进制
@@ -133,7 +132,7 @@ public class Lexer {
                             } while (cur_char >= '0' && cur_char <= '1');
                         } else {
                             // 0b后无数据
-                            lexError(LexError.NUM_BIN_TYPE);
+                            Error.LexError.lexError(Error.LexError.NUM_BIN_TYPE, line_num, line_col);
                             token = new Token(Tag.ERR);
                         }
                     } else if (cur_char >= '0' && cur_char <= '7') {
@@ -157,17 +156,17 @@ public class Lexer {
                     else if (cur_char == '0') c = '\0';
                     else if (cur_char == '\'') c = '\'';
                     else if (cur_char == '\n' || cur_char == 0) {
-                        lexError(LexError.CHAR_NO_R_QUTION);
+                        Error.LexError.lexError(Error.LexError.CHAR_NO_R_QUTION, line_num, line_col);
                         token = new Token(Tag.ERR);
                     } else {
                         c = cur_char;
                     }
                 } else if (cur_char == '\n' || cur_char == 0) {
                     token = new Token(Tag.ERR);
-                    lexError(LexError.CHAR_NO_R_QUTION);
+                    Error.LexError.lexError(Error.LexError.CHAR_NO_R_QUTION, line_num, line_col);
                 } else if (cur_char == '\'') { //空数据
                     token = new Token(Tag.ERR);
-                    lexError(LexError.CHAR_NO_DATA);
+                    Error.LexError.lexError(Error.LexError.CHAR_NO_DATA, line_num, line_col);
                     getChar();
                 } else {
                     c = cur_char;
@@ -177,7 +176,7 @@ public class Lexer {
                         token = new Char(c);
                     } else {
                         token = new Token(Tag.ERR);
-                        lexError(LexError.CHAR_NO_R_QUTION);
+                        Error.LexError.lexError(Error.LexError.CHAR_NO_R_QUTION, line_num, line_col);
                     }
                 }
             } else if (cur_char == '"') { //字符串常量
@@ -192,14 +191,14 @@ public class Lexer {
                         else if (cur_char == '0') stringBuilder.append("\0");
                         else if (cur_char == '\n') ;
                         else if (cur_char == 0) {
-                            lexError(LexError.STR_NO_R_QUTION);
+                            Error.LexError.lexError(Error.LexError.STR_NO_R_QUTION, line_num, line_col);
                             token = new Token(Tag.ERR);
                             break;
                         } else {
                             stringBuilder.append(cur_char);
                         }
                     } else if (cur_char == '\n' || cur_char == 0) {
-                        lexError(LexError.STR_NO_R_QUTION);
+                        Error.LexError.lexError(Error.LexError.STR_NO_R_QUTION, line_num, line_col);
                         token = new Token(Tag.ERR);
                         break;
                     } else {
@@ -237,7 +236,7 @@ public class Lexer {
                                 }
                             }
                             if (cur_char == 0) {
-                                lexError(LexError.COMMENT_NO_END);
+                                Error.LexError.lexError(Error.LexError.COMMENT_NO_END, line_num, line_col);
                                 token = new Token(Tag.ERR);
                             }
                         } else {
@@ -355,7 +354,7 @@ public class Lexer {
                         break;
                     default:
                         token = new Token(Tag.ERR);
-                        lexError(LexError.TOKEN_NO_EXIST);
+                        Error.LexError.lexError(Error.LexError.TOKEN_NO_EXIST, line_num, line_col);
                         getChar();
                         break;
                 }
@@ -367,30 +366,7 @@ public class Lexer {
         return new Token(Tag.TK_EOF);
     }
 
-    private void lexError(LexError lexError) {
-        String[] lexErrorTable = {
-                "字符串丢失右引号",
-                "二进制数没有实体数据",
-                "十六进制数没有实体数据",
-                "字符没有右引号",
-                "不支持空字符",
-                "错误的“或”运算符",
-                "多行注释没有正常结束",
-                "词法记号不存在"
-        };
-        System.out.print(new StringBuilder().append("第 ").append(line_num).append(" 行"));
-        System.out.println(new StringBuilder("，第 ").append(line_col).append(" 列"));
-        System.out.println(lexErrorTable[lexError.ordinal()]);
-    }
+
 }
 
-enum LexError {
-    STR_NO_R_QUTION, //字符串没有右引号
-    NUM_BIN_TYPE,    //二进制数没有实体数据
-    NUM_HEX_TYPE,    //十六进制数没有实体数据
-    CHAR_NO_R_QUTION,//字符没有右引号
-    CHAR_NO_DATA,    //字符没有数据
-    OR_NO_PAIR,      // || 只有一个 |
-    COMMENT_NO_END,  // 多行注释没有正常结束
-    TOKEN_NO_EXIST   // 不存在的词法记号
-}
+

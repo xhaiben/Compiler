@@ -11,7 +11,7 @@ import java.io.File;
 public class Main {
     public static void main(String[] args) throws Exception {
         InputSystem inputSystem = new InputSystem();
-        File file = new File("D:\\IdeaProjects\\Compiler\\test2.c");
+        File file = new File("/home/xhaiben/IdeaProjects/Compiler/test2.c");
         inputSystem.readFromFile(file);
         Lexer lexer = new Lexer(file);
 //        while (true) {

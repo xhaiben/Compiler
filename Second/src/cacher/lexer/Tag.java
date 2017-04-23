@@ -29,7 +29,7 @@ public enum Tag {
     TK_POINT_TO, // -> 指向结构体成员运算符
     TK_DOT, // . 结构体成员运算符
 
-    TK_LEA, // & 地址与运算符
+//    TK_LEA, // & 地址与运算符
     TK_AND, // && 与
     TK_OR, // || 或
     TK_OPEN_PA, // ( 左圆括号

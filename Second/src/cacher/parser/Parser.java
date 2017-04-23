@@ -1,9 +1,12 @@
 package cacher.parser;
 
+import cacher.error.Error;
 import cacher.lexer.Id;
 import cacher.lexer.Lexer;
 import cacher.lexer.Tag;
 import cacher.lexer.Token;
+
+import static cacher.error.Error.ParserError.synterror;
 
 /*
  * Created by xhaiben on 2017/4/8.
@@ -66,7 +69,7 @@ public class Parser {
             type();
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
-                synterror(ParserError.identlost);
+                synterror(Error.ParserError.identlost, lexer.getLine_num());
                 back();
             } else {
                 //声明标识符
@@ -75,11 +78,11 @@ public class Parser {
             if (token.getTag() != Tag.TK_SEMICOLON) {
                 if (token.getTag() == Tag.KW_EXTERN || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
                     //丢失分号
-                    synterror(ParserError.semiconlost);
+                    synterror(Error.ParserError.semiconlost, lexer.getLine_num());
                     back();
                 } else {
                     //分号错误
-                    synterror(ParserError.semiconwrong);
+                    synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
                 }
             }
         } else {
@@ -88,7 +91,7 @@ public class Parser {
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
                 //error
-                synterror(ParserError.identlost);
+                synterror(Error.ParserError.identlost, lexer.getLine_num());
                 back();
             } else {
                 dec_name += ((Id) token).getName();
@@ -109,12 +112,12 @@ public class Parser {
                 return Tag.KW_STRING;
             case TK_IDENT:
                 //error
-                synterror(ParserError.typelost);
+                synterror(Error.ParserError.typelost, lexer.getLine_num());
                 back();
                 break;
             default:
                 //error
-                synterror(ParserError.typewrong);
+                synterror(Error.ParserError.typewrong, lexer.getLine_num());
                 break;
         }
         return null;
@@ -152,11 +155,11 @@ public class Parser {
             fun_level = 0;
             return;
         } else if (token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR) {
-            synterror(ParserError.semiconlost);
+            synterror(Error.ParserError.semiconlost, lexer.getLine_num());
             back();
             return;
         } else {
-            synterror(ParserError.semiconwrong);
+            synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
             return;
         }
     }
@@ -167,7 +170,7 @@ public class Parser {
             if (token.getTag() != Tag.TK_IDENT) {
                 //错误
                 back();
-                synterror(ParserError.identlost);
+                synterror(Error.ParserError.identlost, lexer.getLine_num());
             } else {
                 String dec_name = "";
                 dec_name += ((Id) token).getName();
@@ -179,16 +182,16 @@ public class Parser {
             return;
         } else if (token.getTag() == Tag.TK_IDENT) {
             //错误
-            synterror(ParserError.commalost);
+            synterror(Error.ParserError.commalost, lexer.getLine_num());
             nextToken();
             varlist(dec_type);
         } else if (token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
             //错误
-            synterror(ParserError.semiconlost);
+            synterror(Error.ParserError.semiconlost, lexer.getLine_num());
             back();
         } else {
             //错误
-            synterror(ParserError.semiconwrong);
+            synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
         }
     }
 
@@ -203,7 +206,7 @@ public class Parser {
                 nextToken();
                 if (token.getTag() != Tag.TK_IDENT) {
                     // paralost
-                    synterror(ParserError.paralost);
+                    synterror(Error.ParserError.paralost, lexer.getLine_num());
                     back();
                 } else {
                     para_name += ((Id) token).getName();
@@ -223,7 +226,7 @@ public class Parser {
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
                 //paralost
-                synterror(ParserError.paralost);
+                synterror(Error.ParserError.paralost, lexer.getLine_num());
                 back();
             } else {
                 para_name += ((Id) token).getName();
@@ -232,17 +235,17 @@ public class Parser {
             paralist();
         } else if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON) {
             // 缺失右括号
-            synterror(ParserError.rparenlost);
+            synterror(Error.ParserError.rparenlost, lexer.getLine_num());
             back();
         } else if (token.getTag() == Tag.TK_CLOSE_PA) {
             return;
         } else if (token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
             // 逗号缺失
-            synterror(ParserError.commalost);
+            synterror(Error.ParserError.commalost, lexer.getLine_num());
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
                 // paralost
-                synterror(ParserError.paralost);
+                synterror(Error.ParserError.paralost, lexer.getLine_num());
                 back();
             }
             paralist();
@@ -253,7 +256,7 @@ public class Parser {
         nextToken();
         if (token.getTag() != Tag.TK_LBRACE) {
             //左花括号缺失
-            synterror(ParserError.lbraclost);
+            synterror(Error.ParserError.lbraclost, lexer.getLine_num());
             back();
         }
         int var_num = initvar_num;
@@ -280,10 +283,10 @@ public class Parser {
             return;
         } else if (token == null) {
             //右花括号丢失
-            synterror(ParserError.rbraclost);
+            synterror(Error.ParserError.rbraclost, lexer.getLine_num());
         } else {
             //语句异常
-            synterror(ParserError.statementexcp);
+            synterror(Error.ParserError.statementexcp, lexer.getLine_num());
         }
     }
 
@@ -292,7 +295,7 @@ public class Parser {
         nextToken();
         if (token.getTag() != Tag.TK_IDENT) {
             //标识符不匹配
-            synterror(ParserError.identlost);
+            synterror(Error.ParserError.identlost, lexer.getLine_num());
             back();
         } else {
             //定义局部变量
@@ -306,7 +309,7 @@ public class Parser {
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
                 back();
-                synterror(ParserError.localidentlost);
+                synterror(Error.ParserError.localidentlost, lexer.getLine_num());
             } else {
                 //定义局部变量
             }
@@ -316,19 +319,19 @@ public class Parser {
             return;
         } else if (token.getTag() == Tag.TK_IDENT) {
             //逗号缺失
-            synterror(ParserError.commalost);
+            synterror(Error.ParserError.commalost, lexer.getLine_num());
             nextToken();
             localdectail();
         } else if (token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING || token.getTag() == Tag.TK_RBRACE) {
-            synterror(ParserError.semiconlost);
+            synterror(Error.ParserError.semiconlost, lexer.getLine_num());
             back();
         } else if (token.getTag() == Tag.TK_OPEN_PA) {
             r_brac_is_lost = 1;
-            synterror(ParserError.rbraclost);
+            synterror(Error.ParserError.rbraclost, lexer.getLine_num());
             para();
             block(0, 0, 0);
         } else {
-            synterror(ParserError.semiconwrong);
+            synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
         }
     }
 
@@ -346,11 +349,11 @@ public class Parser {
                 nextToken();
                 if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.TK_RBRACE) {
                     //分号缺失
-                    synterror(ParserError.semiconlost);
+                    synterror(Error.ParserError.semiconlost, lexer.getLine_num());
                     back();
                 } else if (token.getTag() != Tag.TK_SEMICOLON) {
                     //分号错误
-                    synterror(ParserError.semiconwrong);
+                    synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
                 }
                 //生成break
                 break;
@@ -358,11 +361,11 @@ public class Parser {
                 nextToken();
                 if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.TK_RBRACE) {
                     //分号缺失
-                    synterror(ParserError.semiconlost);
+                    synterror(Error.ParserError.semiconlost, lexer.getLine_num());
                     back();
                 } else if (token.getTag() != Tag.TK_SEMICOLON) {
                     //分号错误
-                    synterror(ParserError.semiconwrong);
+                    synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
                 }
                 //生成continue
                 break;
@@ -373,18 +376,18 @@ public class Parser {
                 nextToken();
                 if (token.getTag() != Tag.TK_IN_PUT) {
                     //输入错误
-                    synterror(ParserError.input_err);
+                    synterror(Error.ParserError.input_err, lexer.getLine_num());
                 }
                 nextToken();
                 if (token.getTag() != Tag.TK_IDENT) {
                     //无效输入
-                    synterror(ParserError.na_input);
+                    synterror(Error.ParserError.na_input, lexer.getLine_num());
                 } else {
                     //获取输入
                 }
                 nextToken();
                 if (token.getTag() != Tag.TK_SEMICOLON) {
-                    synterror(ParserError.semiconlost);
+                    synterror(Error.ParserError.semiconlost, lexer.getLine_num());
                     back();
                 }
                 break;
@@ -392,14 +395,14 @@ public class Parser {
                 nextToken();
                 if (token.getTag() != Tag.TK_OUT_PUT) {
                     //输出错误
-                    synterror(ParserError.output_err);
+                    synterror(Error.ParserError.output_err, lexer.getLine_num());
                 }
                 //输出
                 expr();
                 nextToken();
                 if (token.getTag() != Tag.TK_SEMICOLON) {
                     //无效输出
-                    synterror(ParserError.semiconlost);
+                    synterror(Error.ParserError.semiconlost, lexer.getLine_num());
                     back();
                 }
                 break;
@@ -407,7 +410,7 @@ public class Parser {
                 idtail();
                 nextToken();
                 if (token.getTag() != Tag.TK_SEMICOLON) {
-                    synterror(ParserError.semiconlost);
+                    synterror(Error.ParserError.semiconlost, lexer.getLine_num());
                     back();
                 }
                 break;
@@ -419,22 +422,22 @@ public class Parser {
         if (token.getTag() != Tag.TK_OPEN_PA) {
             if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_OPEN_PA) {
                 //左括号缺失
-                synterror(ParserError.lparenlost);
+                synterror(Error.ParserError.lparenlost, lexer.getLine_num());
                 back();
             } else {
                 //符号错误
-                synterror(ParserError.lparenwrong);
+                synterror(Error.ParserError.lparenwrong, lexer.getLine_num());
             }
         }
         nextToken();
         if (token.getTag() != Tag.TK_CLOSE_PA) {
             if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
                 // 右括号缺失
-                synterror(ParserError.staterparenlost);
+                synterror(Error.ParserError.staterparenlost, lexer.getLine_num());
                 back();
             } else {
                 //无效字符
-                synterror(ParserError.rparenwrong);
+                synterror(Error.ParserError.rparenwrong, lexer.getLine_num());
             }
         }
         block(0, 0, 0);
@@ -446,22 +449,22 @@ public class Parser {
         if (token.getTag() != Tag.TK_OPEN_PA) {
             if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
                 //左括号丢失
-                synterror(ParserError.lparenlost);
+                synterror(Error.ParserError.lparenlost, lexer.getLine_num());
                 back();
             } else {
                 //无效字符
-                synterror(ParserError.lparenwrong);
+                synterror(Error.ParserError.lparenwrong, lexer.getLine_num());
             }
         }
         nextToken();
         if (token.getTag() != Tag.TK_CLOSE_PA) {
             if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
                 // 右括号缺失
-                synterror(ParserError.staterparenlost);
+                synterror(Error.ParserError.staterparenlost, lexer.getLine_num());
                 back();
             } else {
                 //无效字符
-                synterror(ParserError.rparenwrong);
+                synterror(Error.ParserError.rparenwrong, lexer.getLine_num());
             }
         }
         block(0, 0, 0);
@@ -469,14 +472,14 @@ public class Parser {
         if (token.getTag() != Tag.KW_ELSE) {
             if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
                 //else丢失
-                synterror(ParserError.elselost);
+                synterror(Error.ParserError.elselost, lexer.getLine_num());
                 back();
             } else if (token.getTag() == Tag.TK_IDENT) {
                 // else 拼写错误
-                synterror(ParserError.elsespelterr);
+                synterror(Error.ParserError.elsespelterr, lexer.getLine_num());
             } else {
                 //非法字符
-                synterror(ParserError.elsewrong);
+                synterror(Error.ParserError.elsewrong, lexer.getLine_num());
             }
         } else {
 
@@ -490,7 +493,7 @@ public class Parser {
         if (token.getTag() != Tag.TK_SEMICOLON) {
             if (token.getTag() == Tag.TK_RBRACE) {
                 //分号丢失
-                synterror(ParserError.semiconlost);
+                synterror(Error.ParserError.semiconlost, lexer.getLine_num());
                 back();
             }
         }
@@ -509,7 +512,7 @@ public class Parser {
             back();
             return;
         } else {
-            synterror(ParserError.returnwrong);
+            synterror(Error.ParserError.returnwrong, lexer.getLine_num());
         }
     }
 
@@ -523,14 +526,14 @@ public class Parser {
             nextToken();
             if (token.getTag() != Tag.TK_CLOSE_PA) {
                 //右括号缺失
-                synterror(ParserError.rparenlost);
+                synterror(Error.ParserError.rparenlost, lexer.getLine_num());
                 back();
             }
         } else if (ident_in_expr == 1) {
             ident_in_expr = 0;
             back();
         } else {
-            synterror(ParserError.idtaillost);
+            synterror(Error.ParserError.idtaillost, lexer.getLine_num());
         }
     }
 
@@ -542,12 +545,12 @@ public class Parser {
         } else if (token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_SEMICOLON) {
             back();
         } else if (token.getTag() == Tag.TK_COMMA) {
-            synterror(ParserError.arglost);
+            synterror(Error.ParserError.arglost, lexer.getLine_num());
             back();
             arglist();
         } else {
             //错误
-            synterror(ParserError.argwrong);
+            synterror(Error.ParserError.argwrong, lexer.getLine_num());
         }
     }
 
@@ -559,29 +562,29 @@ public class Parser {
                 back();
                 arglist();
             } else if (token.getTag() == Tag.TK_COMMA) {
-                synterror(ParserError.arglost);
+                synterror(Error.ParserError.arglost, lexer.getLine_num());
                 back();
                 arglist();
             } else if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_CLOSE_PA) {
-                synterror(ParserError.arglost);
+                synterror(Error.ParserError.arglost, lexer.getLine_num());
                 back();
                 return;
             } else {
                 //错误
-                synterror(ParserError.argwrong);
+                synterror(Error.ParserError.argwrong, lexer.getLine_num());
             }
         } else if (token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_SEMICOLON) {
             back();
             return;
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //错误
-            synterror(ParserError.commalost);
+            synterror(Error.ParserError.commalost, lexer.getLine_num());
             back();
             expr();
             arglist();
         } else {
             //错误
-            synterror(ParserError.arglistwrong);
+            synterror(Error.ParserError.arglistwrong, lexer.getLine_num());
         }
     }
 
@@ -596,7 +599,7 @@ public class Parser {
             expr();
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //错误
-            synterror(ParserError.opplost);
+            synterror(Error.ParserError.opplost, lexer.getLine_num());
             back();
             expr();
         } else if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_COMMA || token.getTag() == Tag.TK_RBRACE || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
@@ -605,16 +608,16 @@ public class Parser {
             nextToken();
             if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_COMMA) {
                 //error
-                synterror(ParserError.oppwrong);
+                synterror(Error.ParserError.oppwrong, lexer.getLine_num());
                 back();
             } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
                 //error
-                synterror(ParserError.oppwrong);
+                synterror(Error.ParserError.oppwrong, lexer.getLine_num());
                 back();
                 expr();
             } else {
                 //error
-                synterror(ParserError.oppwrong);
+                synterror(Error.ParserError.oppwrong, lexer.getLine_num());
             }
         }
     }
@@ -647,7 +650,7 @@ public class Parser {
             aloexp();
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //error
-            synterror(ParserError.opplost);
+            synterror(Error.ParserError.opplost, lexer.getLine_num());
             back();
             aloexp();
         } else {
@@ -675,7 +678,7 @@ public class Parser {
             item();
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //error
-            synterror(ParserError.opplost);
+            synterror(Error.ParserError.opplost, lexer.getLine_num());
             back();
             item();
         } else {
@@ -710,7 +713,7 @@ public class Parser {
                 nextToken();
                 if (token.getTag() != Tag.TK_CLOSE_PA) {
                     //错误
-                    synterror(ParserError.exprparenlost);
+                    synterror(Error.ParserError.exprparenlost, lexer.getLine_num());
                     back();
                 }
                 break;
@@ -719,123 +722,15 @@ public class Parser {
             default:
                 if (token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_COMMA || token.getTag() == Tag.TK_GT || token.getTag() == Tag.TK_GEQ || token.getTag() == Tag.TK_LT || token.getTag() == Tag.TK_LEQ || token.getTag() == Tag.TK_EQ || token.getTag() == Tag.TK_NEQ || token.getTag() == Tag.TK_PLUS || token.getTag() == Tag.TK_MINUS || token.getTag() == Tag.TK_STAR || token.getTag() == Tag.TK_DIVIDE) {
                     //错误
-                    synterror(ParserError.exprlost);
+                    synterror(Error.ParserError.exprlost, lexer.getLine_num());
                     back();
                 } else {
                     //错误
-                    synterror(ParserError.exprwrong);
+                    synterror(Error.ParserError.exprwrong, lexer.getLine_num());
                 }
         }
         return;
     }
 
-    private void synterror(ParserError error) {
-        errorNum++;
-        synerr++;
-        System.out.printf("在第 %d 行，语法分析错误   ", this.lexer.getLine_num());
-        switch (error) {
-            case semiconlost:
-                System.out.println("符号 ; 缺失");
-                break;
-            case commalost:
-                System.out.println("符号 , 缺失");
-                break;
-            case typelost:
-                System.out.println("类型错误");
-                break;
-            case identlost:
-                System.out.println("缺失变量名");
-                break;
-            case semiconwrong:
-                System.out.println("符号 ; 错误");
-                break;
-            case typewrong:
-                System.out.println("类型错误");
-                break;
-            case paralost:
-                System.out.println("缺失参数名");
-                break;
-            case rparenlost:
-                System.out.println("缺失 )");
-                break;
-            case lbraclost:
-                System.out.println("缺失 {");
-                break;
-            case rbraclost:
-                System.out.println("缺失 }");
-                break;
-            case statementexcp:
-                System.out.println("无效的语句");
-                break;
-            case localidentlost:
-                System.out.println("缺失变量名");
-                break;
-            case lparenlost:
-                System.out.println("缺失 (");
-                break;
-            case lparenwrong:
-                System.out.println(" ( 错误");
-                break;
-            case staterparenlost:
-                System.out.println("缺失 )");
-                break;
-            case rparenwrong:
-                System.out.println(" ) 错误");
-                break;
-            case elselost:
-                System.out.println("可能缺失 else");
-                break;
-            case elsespelterr:
-                System.out.println("错误的 else");
-                break;
-            case elsewrong:
-                System.out.println("else 错误");
-                break;
-            case idtaillost:
-                System.out.println("变量名错误");
-                break;
-            case returnwrong:
-                System.out.println("返回类型错误");
-                break;
-            case arglost:
-                System.out.println("参数缺失");
-                break;
-            case argwrong:
-                System.out.println("参数错误");
-                break;
-            case opplost:
-                System.out.println("操作符缺失");
-                break;
-            case oppwrong:
-                System.out.println("错误的操作符");
-                break;
-            case exprlost:
-                System.out.println("表达式缺失");
-                break;
-            case exprparenlost:
-                System.out.println("表达式错误");
-                break;
-            case exprwrong:
-                System.out.println("表达式错误");
-                break;
-            case na_input:
-                System.out.println("无效的输入");
-                break;
-            case input_err:
-                System.out.println("输入错误");
-                break;
-            case output_err:
-                System.out.println("输出错误");
-                break;
-        }
-
-    }
 }
 
-enum ParserError {
-    semiconlost, commalost, typelost, identlost, semiconwrong, typewrong,//变量声明部分的错误类型
-    paralost, rparenlost, lbraclost, rbraclost,//函数定义部分的错误类型
-    statementexcp, localidentlost, lparenlost, lparenwrong, staterparenlost, rparenwrong, elselost, elsespelterr, elsewrong,//复合语句部分的错误类型
-    idtaillost, returnwrong, arglost, argwrong, arglistwrong, na_input, input_err, output_err,
-    opplost, oppwrong, exprlost, exprparenlost, exprwrong
-}
