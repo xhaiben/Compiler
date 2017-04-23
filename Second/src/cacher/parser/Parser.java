@@ -5,8 +5,6 @@ import cacher.lexer.Lexer;
 import cacher.lexer.Tag;
 import cacher.lexer.Token;
 
-import java.util.List;
-
 /*
  * Created by xhaiben on 2017/4/8.
  */

@@ -1,7 +1,5 @@
 import cacher.lexer.InputSystem;
 import cacher.lexer.Lexer;
-import cacher.lexer.Tag;
-import cacher.lexer.Token;
 import cacher.parser.Parser;
 
 import java.io.File;
