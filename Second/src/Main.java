@@ -1,3 +1,4 @@
+import cacher.generator.generator;
 import cacher.lexer.InputSystem;
 import cacher.lexer.Lexer;
 import cacher.parser.Parser;
@@ -11,17 +12,12 @@ import java.io.File;
 public class Main {
     public static void main(String[] args) throws Exception {
         InputSystem inputSystem = new InputSystem();
-        File file = new File("/home/xhaiben/IdeaProjects/Compiler/test2.c");
+        File file = new File("D:\\IdeaProjects\\Compiler\\test2.c");
         inputSystem.readFromFile(file);
         Lexer lexer = new Lexer(file);
-//        while (true) {
-//            Token token = lexer.lex();
-//            System.out.println(token.getTag());
-//            if (token.getTag() == Tag.TK_EOF) {
-//                break;
-//            }
-//        }
         Parser parser = new Parser(lexer);
+        generator gener = generator.getInstance();
+        gener.set_out_file(new File("out.as"));
         parser.parse();
     }
 }

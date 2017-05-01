@@ -5,8 +5,10 @@ import cacher.lexer.Id;
 import cacher.lexer.Lexer;
 import cacher.lexer.Tag;
 import cacher.lexer.Token;
+import cacher.semantic.var_record;
 
 import static cacher.error.Error.ParserError.synterror;
+import static cacher.semantic.semantic.*;
 
 /*
  * Created by xhaiben on 2017/4/8.
@@ -65,14 +67,22 @@ public class Parser {
         if (token.getTag() == Tag.TK_SEMICOLON) {
             return;
         } else if (token.getTag() == Tag.KW_EXTERN) {
+            String dec_name = "";
             nextToken();
-            type();
+            Tag dec_type = type();
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
                 synterror(Error.ParserError.identlost, lexer.getLine_num());
                 back();
             } else {
                 //声明标识符
+                dec_name += ((Id) token).getName();
+                tvar.init(new Token(dec_type), dec_name);
+                tvar.externed = 1;
+                if (dec_type == Tag.KW_STRING) {
+                    tvar.strValID = -2;
+                }
+                table.add_var();
             }
             nextToken();
             if (token.getTag() != Tag.TK_SEMICOLON) {
@@ -127,12 +137,23 @@ public class Parser {
         nextToken();
         switch (token.getTag()) {
             case TK_SEMICOLON:
+                tvar.init(new Token(dec_type), dec_name);
+                if (dec_type == Tag.KW_STRING) {
+                    tvar.strValID = -2;
+                }
+                table.add_var();
                 break;
             case TK_OPEN_PA:
+                tfun.init(dec_type, dec_name);
                 para();
                 funtail(dec_type, dec_name);
                 break;
             default:
+                tvar.init(new Token(dec_type), dec_name);
+                if (dec_type == Tag.KW_STRING) {
+                    tvar.strValID = -2;
+                }
+                table.add_var();
                 varlist(dec_type);
                 break;
         }
@@ -143,11 +164,16 @@ public class Parser {
     private void funtail(Tag dec_type, String dec_name) {
         nextToken();
         if (token.getTag() == Tag.TK_SEMICOLON) { //函数声明
+            table.add_fun();
             return;
         } else if (token.getTag() == Tag.TK_LBRACE) { //函数定义
+            tfun.defined = 1;
+            table.add_fun();
             back();
             block(0, 0, 0);
             fun_level = 0;
+            tfun.pop_local_vars(-1);
+            gener.gen_fun_tail();
             return;
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.TK_RBRACE) {
             back();
@@ -174,7 +200,11 @@ public class Parser {
             } else {
                 String dec_name = "";
                 dec_name += ((Id) token).getName();
-
+                tvar.init(new Token(dec_type), dec_name);
+                if (dec_type == Tag.KW_STRING) {
+                    tvar.strValID = -2;
+                }
+                table.add_var();
             }
             nextToken();
             varlist(dec_type);
@@ -211,6 +241,13 @@ public class Parser {
                 } else {
                     para_name += ((Id) token).getName();
                     //形式参数
+                    boolean msg_back = table.has_name(para_name);
+                    if (msg_back) {
+                        Error.SemError.semerror(Error.SemError.para_redef);
+                    } else {
+                        tvar.init(new Token(para_type), para_name);
+                        tfun.addarg();
+                    }
                 }
                 paralist();
                 break;
@@ -230,7 +267,14 @@ public class Parser {
                 back();
             } else {
                 para_name += ((Id) token).getName();
+                boolean msg_back = table.has_name(para_name);
                 //形式参数
+                if (msg_back) {
+                    Error.SemError.semerror(Error.SemError.para_redef);
+                } else {
+                    tvar.init(new Token(para_type), para_name);
+                    tfun.addarg();
+                }
             }
             paralist();
         } else if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON) {
@@ -259,25 +303,26 @@ public class Parser {
             synterror(Error.ParserError.lbraclost, lexer.getLine_num());
             back();
         }
-        int var_num = initvar_num;
-
-        childprogram();
-
+        int[] var_num = {initvar_num};
+        fun_level++;
+        childprogram(var_num, lopId, blockAddr);
+        fun_level--;
+        tfun.pop_local_vars(var_num[0]);
     }
 
     private int r_brac_is_lost = 0;
 
-    private void childprogram() {
+    private void childprogram(int[] var_num, int lopId, int blockAddr) {
         nextToken();
         if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT) {
-            statement();
-            childprogram();
+            statement(var_num, lopId, blockAddr);
+            childprogram(var_num, lopId, blockAddr);
         } else if (token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
-            localdec();
+            localdec(var_num);
             if (r_brac_is_lost == 1) {
                 r_brac_is_lost = 0;
             } else {
-                childprogram();
+                childprogram(var_num, lopId, blockAddr);
             }
         } else if (token.getTag() == Tag.TK_RBRACE) { //复合语句结尾
             return;
@@ -290,8 +335,10 @@ public class Parser {
         }
     }
 
-    private void localdec() {
-        type();
+    private void localdec(int[] var_num) {
+        Tag local_type;
+        String local_name = "";
+        local_type = type();
         nextToken();
         if (token.getTag() != Tag.TK_IDENT) {
             //标识符不匹配
@@ -299,12 +346,21 @@ public class Parser {
             back();
         } else {
             //定义局部变量
+            local_name = ((Id) token).getName();
+            boolean msg_back = table.has_name(local_name);
+            if (msg_back) {
+                Error.SemError.semerror(Error.SemError.localvar_redef);
+            } else {
+                tvar.init(new Token(local_type), local_name);
+                tfun.push_local_val();
+                var_num[0]++;
+            }
         }
         nextToken();
-        localdectail();
+        localdectail(var_num, local_type);
     }
 
-    private void localdectail() {
+    private void localdectail(int[] var_num, Tag local_type) {
         if (token.getTag() == Tag.TK_COMMA) {
             nextToken();
             if (token.getTag() != Tag.TK_IDENT) {
@@ -312,16 +368,25 @@ public class Parser {
                 synterror(Error.ParserError.localidentlost, lexer.getLine_num());
             } else {
                 //定义局部变量
+                String local_name = ((Id) token).getName();
+                boolean msg_back = table.has_name(local_name);
+                if (msg_back) {
+                    Error.SemError.semerror(Error.SemError.localvar_redef);
+                } else {
+                    tvar.init(new Token(local_type), local_name);
+                    tfun.push_local_val();
+                    var_num[0]++;
+                }
             }
             nextToken();
-            localdectail();
+            localdectail(var_num, local_type);
         } else if (token.getTag() == Tag.TK_SEMICOLON) {
             return;
         } else if (token.getTag() == Tag.TK_IDENT) {
             //逗号缺失
             synterror(Error.ParserError.commalost, lexer.getLine_num());
             nextToken();
-            localdectail();
+            localdectail(var_num, local_type);
         } else if (token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING || token.getTag() == Tag.TK_RBRACE) {
             synterror(Error.ParserError.semiconlost, lexer.getLine_num());
             back();
@@ -335,15 +400,16 @@ public class Parser {
         }
     }
 
-    private void statement() {
+    private void statement(int[] var_num, int lopId, int blockAddr) {
+        String refName = "";
         switch (token.getTag()) {
             case TK_SEMICOLON:
                 break;
             case KW_WHILE:
-                whilestat();
+                whilestat(var_num);
                 break;
             case KW_IF:
-                ifstat();
+                ifstat(var_num, lopId, blockAddr);
                 break;
             case KW_BREAK:
                 nextToken();
@@ -356,6 +422,12 @@ public class Parser {
                     synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
                 }
                 //生成break
+                if (lopId != 0) {
+                    gener.gen_block(blockAddr);
+                    gener.out_code("\tjmp @while_%d_exit\n", lopId);
+                } else {
+                    Error.SemError.semerror(Error.SemError.break_nin_while);
+                }
                 break;
             case KW_CONTINUE:
                 nextToken();
@@ -368,9 +440,15 @@ public class Parser {
                     synterror(Error.ParserError.semiconwrong, lexer.getLine_num());
                 }
                 //生成continue
+                if (lopId != 0) {
+                    gener.gen_block(blockAddr);
+                    gener.out_code("\tjmp @while_%d_lop\n", lopId);
+                } else {
+                    Error.SemError.semerror(Error.SemError.continue_nin_while);
+                }
                 break;
             case KW_RETURN:
-                retstat();
+                retstat(var_num);
                 break;
             case KW_IN:
                 nextToken();
@@ -384,6 +462,8 @@ public class Parser {
                     synterror(Error.ParserError.na_input, lexer.getLine_num());
                 } else {
                     //获取输入
+                    refName += ((Id) token).getName();
+                    gener.gen_input(table.get_var(refName), var_num);
                 }
                 nextToken();
                 if (token.getTag() != Tag.TK_SEMICOLON) {
@@ -398,7 +478,7 @@ public class Parser {
                     synterror(Error.ParserError.output_err, lexer.getLine_num());
                 }
                 //输出
-                expr();
+                gener.gen_output(expr(var_num), var_num);
                 nextToken();
                 if (token.getTag() != Tag.TK_SEMICOLON) {
                     //无效输出
@@ -407,7 +487,8 @@ public class Parser {
                 }
                 break;
             case TK_IDENT:
-                idtail();
+                refName = ((Id) token).getName();
+                idtail(refName, var_num);
                 nextToken();
                 if (token.getTag() != Tag.TK_SEMICOLON) {
                     synterror(Error.ParserError.semiconlost, lexer.getLine_num());
@@ -417,7 +498,11 @@ public class Parser {
         }
     }
 
-    private void whilestat() {
+    private int lopId = 0;
+
+    private void whilestat(int[] var_num) {
+        lopId++;
+        int id = lopId;
         nextToken();
         if (token.getTag() != Tag.TK_OPEN_PA) {
             if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_OPEN_PA) {
@@ -429,6 +514,13 @@ public class Parser {
                 synterror(Error.ParserError.lparenwrong, lexer.getLine_num());
             }
         }
+        gener.out_code("@while_%d_lop:\n", id);
+        int blockAddr = gener.gen_block(-1);
+        int[] initvar_num_while = {0};
+        var_record cond = expr(initvar_num_while);
+        gener.gen_condition(cond);
+        gener.out_code("\tje @while_%d_exit\n", id);
+
         nextToken();
         if (token.getTag() != Tag.TK_CLOSE_PA) {
             if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
@@ -440,11 +532,17 @@ public class Parser {
                 synterror(Error.ParserError.rparenwrong, lexer.getLine_num());
             }
         }
-        block(0, 0, 0);
-
+        block(initvar_num_while[0], lopId, blockAddr);
+        gener.gen_block(blockAddr);
+        gener.out_code("\tjmp @while_%d_lop\n", id);
+        gener.out_code("@while_%d_exit:\n", id);
     }
 
-    private void ifstat() {
+    private int ifId = 0;
+
+    private void ifstat(int[] var_num, int lopId, int blockAddr) {
+        ifId++;
+        int id = ifId;
         nextToken();
         if (token.getTag() != Tag.TK_OPEN_PA) {
             if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
@@ -456,6 +554,12 @@ public class Parser {
                 synterror(Error.ParserError.lparenwrong, lexer.getLine_num());
             }
         }
+        int blockAddr1 = gener.gen_block(-1);
+        int[] initvar_num_if = {0};
+        var_record cond = expr(initvar_num_if);
+        gener.gen_condition(cond);
+        gener.out_code("\tje @if_%d_middle\n", id);
+
         nextToken();
         if (token.getTag() != Tag.TK_CLOSE_PA) {
             if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
@@ -467,7 +571,12 @@ public class Parser {
                 synterror(Error.ParserError.rparenwrong, lexer.getLine_num());
             }
         }
-        block(0, 0, 0);
+        block(initvar_num_if[0], lopId, blockAddr);
+        gener.gen_block(blockAddr1);
+        gener.out_code("\tjmp @if_%d_end\n", id);
+        gener.out_code("@if_%d_middle:\n", id);
+        gener.gen_block(blockAddr1);
+
         nextToken();
         if (token.getTag() != Tag.KW_ELSE) {
             if (token.getTag() == Tag.TK_LBRACE || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
@@ -484,11 +593,13 @@ public class Parser {
         } else {
 
         }
-        block(0, 0, 0);
+        block(0, lopId, blockAddr);
+        gener.gen_block(blockAddr1);
+        gener.out_code("@if_%d_end:\n", id);
     }
 
-    private void retstat() {
-        returntail();
+    private void retstat(int[] var_num) {
+        returntail(var_num);
         nextToken();
         if (token.getTag() != Tag.TK_SEMICOLON) {
             if (token.getTag() == Tag.TK_RBRACE) {
@@ -499,14 +610,26 @@ public class Parser {
         }
     }
 
-    private void returntail() {
+    private void returntail(int[] var_num) {
+        if (fun_level == 1) {
+            tfun.had_ret = 1;
+        }
+
         nextToken();
         if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             back();
-            expr();
+            var_record ret = expr(var_num);
+            if (ret != null && ret.type.getTag() != tfun.type) {
+                Error.SemError.semerror(Error.SemError.ret_type_err);
+            }
+            gener.gen_return(ret, var_num);
 
         } else if (token.getTag() == Tag.TK_SEMICOLON) {
             back();
+            if (tfun.type != Tag.KW_VOID) {
+                Error.SemError.semerror(Error.SemError.ret_type_err);
+            }
+            gener.gen_return(null, var_num);
             return;
         } else if (token.getTag() == Tag.TK_RBRACE) {
             back();
@@ -516,55 +639,64 @@ public class Parser {
         }
     }
 
-    private void idtail() {
+    private var_record idtail(String refname, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_ASSIGN) {
-            expr();
-
+            var_record src = expr(var_num);
+            var_record des = table.get_var(refname);
+            return gener.gen_assign(des, src, var_num);
         } else if (token.getTag() == Tag.TK_OPEN_PA) {
-            realarg();
+            realarg(refname, var_num);
+            var_record var_ret = table.gen_Call(refname, var_num);
             nextToken();
             if (token.getTag() != Tag.TK_CLOSE_PA) {
                 //右括号缺失
                 synterror(Error.ParserError.rparenlost, lexer.getLine_num());
                 back();
             }
+            return var_ret;
         } else if (ident_in_expr == 1) {
             ident_in_expr = 0;
             back();
+            return table.get_var(refname);
         } else {
             synterror(Error.ParserError.idtaillost, lexer.getLine_num());
+            back();
         }
+        return null;
     }
 
-    private void realarg() {
+    private void realarg(String refname, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             back();
-            arglist();
+            table.add_real_arg(expr(var_num), var_num);
+            arglist(var_num);
         } else if (token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_SEMICOLON) {
             back();
+            return;
         } else if (token.getTag() == Tag.TK_COMMA) {
             synterror(Error.ParserError.arglost, lexer.getLine_num());
             back();
-            arglist();
+            arglist(var_num);
         } else {
             //错误
             synterror(Error.ParserError.argwrong, lexer.getLine_num());
         }
     }
 
-    private void arglist() {
+    private void arglist(int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_COMMA) {
             nextToken();
             if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
                 back();
-                arglist();
+                table.add_real_arg(expr(var_num), var_num);
+                arglist(var_num);
             } else if (token.getTag() == Tag.TK_COMMA) {
                 synterror(Error.ParserError.arglost, lexer.getLine_num());
                 back();
-                arglist();
+                arglist(var_num);
             } else if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_CLOSE_PA) {
                 synterror(Error.ParserError.arglost, lexer.getLine_num());
                 back();
@@ -580,46 +712,57 @@ public class Parser {
             //错误
             synterror(Error.ParserError.commalost, lexer.getLine_num());
             back();
-            expr();
-            arglist();
+            expr(var_num);
+            arglist(var_num);
         } else {
             //错误
             synterror(Error.ParserError.arglistwrong, lexer.getLine_num());
         }
     }
 
-    private void expr() {
-        aloexp();
-        exptail();
+    private var_record expr(int[] var_num) {
+        var_record factor1 = aloexp(var_num);
+        var_record factor2 = exptail(factor1, var_num);
+        if (factor2 == null) {
+            return factor1;
+        } else {
+            return factor2;
+        }
     }
 
-    private void exptail() {
+    private var_record exptail(var_record factor1, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_GT || token.getTag() == Tag.TK_GEQ || token.getTag() == Tag.TK_LT || token.getTag() == Tag.TK_LEQ || token.getTag() == Tag.TK_EQ || token.getTag() == Tag.TK_NEQ) {
-            expr();
+
+            var_record factor2 = expr(var_num);
+            return gener.gen_exp(factor1, token.getTag(), factor2, var_num);
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //错误
             synterror(Error.ParserError.opplost, lexer.getLine_num());
             back();
-            expr();
+            expr(var_num);
         } else if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_COMMA || token.getTag() == Tag.TK_RBRACE || token.getTag() == Tag.KW_RETURN || token.getTag() == Tag.KW_BREAK || token.getTag() == Tag.KW_CONTINUE || token.getTag() == Tag.KW_IN || token.getTag() == Tag.KW_OUT || token.getTag() == Tag.KW_WHILE || token.getTag() == Tag.KW_IF || token.getTag() == Tag.KW_INT || token.getTag() == Tag.KW_VOID || token.getTag() == Tag.KW_CHAR || token.getTag() == Tag.KW_STRING) {
             back();
+            return null;
         } else {
             nextToken();
             if (token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_COMMA) {
                 //error
                 synterror(Error.ParserError.oppwrong, lexer.getLine_num());
                 back();
+                return null;
             } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
                 //error
                 synterror(Error.ParserError.oppwrong, lexer.getLine_num());
                 back();
-                expr();
+                expr(var_num);
             } else {
                 //error
                 synterror(Error.ParserError.oppwrong, lexer.getLine_num());
+                return null;
             }
         }
+        return null;
     }
 
     private void cmps() {
@@ -639,23 +782,31 @@ public class Parser {
         }
     }
 
-    private void aloexp() {
-        item();
-        itemtail();
+    private var_record aloexp(int[] var_num) {
+        var_record factor1 = item(var_num);
+        var_record factor2 = itemtail(factor1, var_num);
+        if (factor2 == null) {
+            return factor1;
+        } else {
+            return factor2;
+        }
     }
 
-    private void itemtail() {
+    private var_record itemtail(var_record factor1, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_PLUS || token.getTag() == Tag.TK_MINUS) {
-            aloexp();
+            var_record factor2 = aloexp(var_num);
+            return gener.gen_exp(factor1, token.getTag(), factor2, var_num);
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //error
             synterror(Error.ParserError.opplost, lexer.getLine_num());
             back();
-            aloexp();
+            aloexp(var_num);
         } else {
             back();
+            return null;
         }
+        return null;
     }
 
     private void adds() {
@@ -667,25 +818,31 @@ public class Parser {
         }
     }
 
-    private void item() {
-        factor();
-        factortail();
+    private var_record item(int[] var_num) {
+        var_record factor1 = factor(var_num);
+        var_record factor2 = factortail(factor1, var_num);
+        if (factor2 == null) {
+            return factor1;
+        } else {
+            return factor2;
+        }
     }
 
-    private void factortail() {
+    private var_record factortail(var_record factor1, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_STAR || token.getTag() == Tag.TK_DIVIDE) {
-            item();
+            var_record factor2 = item(var_num);
+            return gener.gen_exp(factor1, token.getTag(), factor2, var_num);
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //error
             synterror(Error.ParserError.opplost, lexer.getLine_num());
             back();
-            item();
+            item(var_num);
         } else {
             back();
-            return;
+            return null;
         }
-        return;
+        return null;
     }
 
     private void muls() {
@@ -698,18 +855,24 @@ public class Parser {
     }
 
 
-    private void factor() {
+    private var_record factor(int[] var_num) {
         nextToken();
+        var_record p_tmpvar = null;
+        String refname = "";
         switch (token.getTag()) {
             case TK_IDENT:
                 ident_in_expr = 1;
-                idtail();
+                refname = ((Id) token).getName();
+                p_tmpvar = idtail(refname, var_num);
                 break;
             case TK_C_NUM:
+                p_tmpvar = tfun.create_tmp_var(new Token(Tag.KW_INT), 1, var_num);
                 break;
             case TK_C_CHAR:
+                p_tmpvar = tfun.create_tmp_var(new Token(Tag.KW_CHAR), 1, var_num);
                 break;
             case TK_OPEN_PA:
+                p_tmpvar = expr(var_num);
                 nextToken();
                 if (token.getTag() != Tag.TK_CLOSE_PA) {
                     //错误
@@ -718,6 +881,7 @@ public class Parser {
                 }
                 break;
             case TK_C_STR:
+                p_tmpvar = tfun.create_tmp_var(new Token(Tag.KW_STRING), 1, var_num);
                 break;
             default:
                 if (token.getTag() == Tag.TK_CLOSE_PA || token.getTag() == Tag.TK_SEMICOLON || token.getTag() == Tag.TK_COMMA || token.getTag() == Tag.TK_GT || token.getTag() == Tag.TK_GEQ || token.getTag() == Tag.TK_LT || token.getTag() == Tag.TK_LEQ || token.getTag() == Tag.TK_EQ || token.getTag() == Tag.TK_NEQ || token.getTag() == Tag.TK_PLUS || token.getTag() == Tag.TK_MINUS || token.getTag() == Tag.TK_STAR || token.getTag() == Tag.TK_DIVIDE) {
@@ -729,7 +893,7 @@ public class Parser {
                     synterror(Error.ParserError.exprwrong, lexer.getLine_num());
                 }
         }
-        return;
+        return p_tmpvar;
     }
 
 }

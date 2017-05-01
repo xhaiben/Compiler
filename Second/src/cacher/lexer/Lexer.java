@@ -13,15 +13,14 @@ import cacher.error.Error;
 
 public class Lexer {
 
-
-    private int line_num = 0;//行号
+    private static int line_num = 0;//行号
     private int line_col = 0;//行内列号
     private char cur_char = ' ';//当前字符
     private char old_char = ' ';//前一个字符
     private String cur_line = "";//当前行
     private Scanner scanner;
 
-    public int getLine_num() {
+    public static int getLine_num() {
         return line_num;
     }
 
@@ -365,7 +364,6 @@ public class Lexer {
         }
         return new Token(Tag.TK_EOF);
     }
-
 
 }
 

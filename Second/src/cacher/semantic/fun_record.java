@@ -2,10 +2,7 @@ package cacher.semantic;
 
 import cacher.Utils.BeanUtil;
 import cacher.error.Error;
-import cacher.lexer.Char;
-import cacher.lexer.Num;
-import cacher.lexer.Tag;
-import cacher.lexer.Token;
+import cacher.lexer.*;
 
 import java.io.Serializable;
 import java.util.LinkedList;
@@ -141,7 +138,7 @@ public class fun_record implements Serializable {
                 break;
             case KW_STRING:
                 if (has_val != 0) {
-                    p_temp_var.strValID = semantic.table.add_string();
+                    p_temp_var.strValID = semantic.table.add_string(((Str) type).getStr());
                 } else {
                     p_temp_var.strValID = -1;
                 }

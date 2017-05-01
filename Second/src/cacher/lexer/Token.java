@@ -4,7 +4,9 @@ package cacher.lexer;
  * Created by xhaiben on 2017/3/11.
  */
 
-public class Token {
+import java.io.Serializable;
+
+public class Token implements Serializable {
     private Tag tag;
 
     public Token(Tag tag) {

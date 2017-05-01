@@ -4,6 +4,8 @@ package cacher.error;
  * Created by xhaiben on 17-4-23.
  */
 
+import cacher.lexer.Lexer;
+
 public class Error {
 
     public static int errorNum = 0;
@@ -151,4 +153,77 @@ public class Error {
         }
     }
 
+    public enum SemError {
+        var_redef, para_redef, localvar_redef, fun_redef, fun_def_err, fun_dec_err,//声明类错误
+        str_nadd, void_ncal,//表达式类错误
+        void_nassi, assi_ncomtype, ret_type_err, fun_undec, var_undec, real_args_err, str_nb_cond, void_nb_cond, break_nin_while, continue_nin_while, void_nin;
+
+        public static void semerror(SemError error) {
+            if (synerr != 0) {
+                return;
+            }
+            errorNum++;
+            semerr++;
+            System.out.printf("在第 %d 行，语义分析错误   ", Lexer.getLine_num());
+            switch (error) {
+                case var_redef:
+                    System.out.printf("全局变量名称重定义。\n");
+                    break;
+                case para_redef:
+                    System.out.printf("参数名称重定义。\n");
+                    break;
+                case localvar_redef:
+                    System.out.printf("局部变量名称重定义。\n");
+                    break;
+                case fun_redef:
+                    System.out.printf("函数重定义。\n");
+                    break;
+                case fun_def_err:
+                    System.out.printf("函数定义和先前的声明不一致。\n");
+                    break;
+                case fun_dec_err:
+                    System.out.printf("函数的多次声明不一致。\n");
+                    break;
+                case fun_undec:
+                    System.out.printf("函数被调用之前没有合法的声明。\n");
+                    break;
+                case var_undec:
+                    System.out.printf("变量在使用之前没有合法的声明。\n");
+                    break;
+                case str_nadd:
+                    System.out.printf("字符串不能运用于除了加法以外的运算。\n");
+                    break;
+                case void_ncal:
+                    System.out.printf("void类型不能参加表达式运算。\n");
+                    break;
+                case void_nassi:
+                    System.out.printf("void类型不能参加赋值运算。\n");
+                    break;
+                case assi_ncomtype:
+                    System.out.printf("赋值类型不匹配。\n");
+                    break;
+                case ret_type_err:
+                    System.out.printf("函数返回值与函数类型不匹配。\n");
+                    break;
+                case real_args_err:
+                    System.out.printf("函数实参的类型不能与函数的形参声明严格匹配。\n");
+                    break;
+                case str_nb_cond:
+                    System.out.printf("字符串类型不能作为条件。\n");
+                    break;
+                case void_nb_cond:
+                    System.out.printf("void类型不能作为条件。\n");
+                    break;
+                case break_nin_while:
+                    System.out.printf("break语句不能出现在while之外。\n");
+                    break;
+                case continue_nin_while:
+                    System.out.printf("continue语句不能出现在while之外。\n");
+                    break;
+                case void_nin:
+                    System.out.printf("void类型不能作为输入的对象。\n");
+                    break;
+            }
+        }
+    }
 }

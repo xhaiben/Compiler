@@ -12,7 +12,7 @@ import java.io.File;
 public class semantic {
     public static var_record tvar = new var_record();
     public static fun_record tfun = new fun_record();
-    public static Table table = new Table();
+    public static Table table = Table.getInstance();
     public static generator gener = generator.getInstance();
 
     public semantic(File out_file) {
