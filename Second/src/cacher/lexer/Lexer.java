@@ -20,6 +20,11 @@ public class Lexer {
     private String cur_line = "";//当前行
     private Scanner scanner;
 
+    public static String id; //当前标识符
+    public static int num; //当前int
+    public static char aChar;//当前char
+    public static String string;//当前String
+
     public static int getLine_num() {
         return line_num;
     }
@@ -88,6 +93,7 @@ public class Lexer {
                 Tag tag = Keywords.getTag(name.toString());
                 if (tag == Tag.TK_IDENT) {
                     // 标识符
+                    id = name.toString();
                     token = new Id(name.toString());
                 } else {
                     // 关键字
@@ -142,6 +148,7 @@ public class Lexer {
                     }
                 }
                 if (token == null) {
+                    num = val;
                     token = new Num(val);
                 }
             } else if (cur_char == '\'') { //字符常量
@@ -172,6 +179,7 @@ public class Lexer {
                 }
                 if (token == null) {
                     if (getChar('\'')) {
+                        aChar = c;
                         token = new Char(c);
                     } else {
                         token = new Token(Tag.ERR);
@@ -205,6 +213,7 @@ public class Lexer {
                     }
                 }
                 if (token == null) {
+                    string = stringBuilder.toString();
                     token = new Str(stringBuilder.toString());
                 }
             } else {

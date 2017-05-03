@@ -2,7 +2,7 @@ package cacher.semantic;
 
 import cacher.Utils.BeanUtil;
 import cacher.error.Error;
-import cacher.generator.generator;
+import cacher.generator.Generator;
 import cacher.lexer.Tag;
 import cacher.lexer.Token;
 
@@ -10,21 +10,21 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import static cacher.semantic.semantic.tfun;
-import static cacher.semantic.semantic.tvar;
+import static cacher.semantic.Semantic.tfun;
+import static cacher.semantic.Semantic.tvar;
 
 /*
  * Created by xhaiben on 17-4-23.
  */
 public class Table {
-    public HashMap<String, var_record> var_map;
-    public HashMap<String, fun_record> fun_map;
+    public HashMap<String, Var_record> var_map;
+    public HashMap<String, Fun_record> fun_map;
     public LinkedList<String> stringTable;
-    public LinkedList<var_record> real_args_list;
+    public LinkedList<Var_record> real_args_list;
 
     private static Table table = null;
 
-    private generator gener;
+    private Generator gener;
 
     static {
         if (table == null) {
@@ -41,7 +41,7 @@ public class Table {
         fun_map = new HashMap<>();
         stringTable = new LinkedList<>();
         real_args_list = new LinkedList<>();
-        gener = generator.getInstance();
+        gener = Generator.getInstance();
     }
 
     private int stringId = 0;
@@ -73,7 +73,7 @@ public class Table {
             return;
         }
         if (!var_map.containsKey(tvar.name)) {
-            var_record p_var = BeanUtil.cloneTo(tvar);
+            Var_record p_var = BeanUtil.cloneTo(tvar);
             var_map.put(tvar.name, p_var);
         } else {
             var_map.put(tvar.name, tvar);
@@ -81,7 +81,7 @@ public class Table {
         }
     }
 
-    public void add_var(var_record v_r) {
+    public void add_var(Var_record v_r) {
         if (Error.synerr != 0) {
             return;
         }
@@ -92,7 +92,7 @@ public class Table {
         }
     }
 
-    public var_record get_var(String name) {
+    public Var_record get_var(String name) {
         if (Error.synerr != 0) {
             return null;
         }
@@ -127,7 +127,7 @@ public class Table {
             return;
         }
         if (!fun_map.containsKey(tfun.name)) {
-            fun_record p_fun = BeanUtil.cloneTo(tfun);
+            Fun_record p_fun = BeanUtil.cloneTo(tfun);
             fun_map.put(tfun.name, p_fun);
 
             if (p_fun.defined == 1) {
@@ -135,7 +135,7 @@ public class Table {
                 gener.gen_fun_head();
             }
         } else {
-            fun_record p_fun = fun_map.get(tfun.name);
+            Fun_record p_fun = fun_map.get(tfun.name);
             if (p_fun.equals(tfun)) {
                 if (tfun.defined == 1) {
                     if (p_fun.defined == 1) {
@@ -149,7 +149,7 @@ public class Table {
                 }
                 return;
             } else {
-                fun_record pfun = BeanUtil.cloneTo(tfun);
+                Fun_record pfun = BeanUtil.cloneTo(tfun);
                 fun_map.remove(tfun.name);
                 fun_map.put(tfun.name, pfun);
                 if (tfun.defined == 1) {
@@ -162,24 +162,24 @@ public class Table {
         }
     }
 
-    public void add_real_arg(var_record arg, int[] var_num) {
+    public void add_real_arg(Var_record arg, int[] var_num) {
         if (Error.synerr != 0) {
             return;
         }
         if (arg.type.getTag() == Tag.KW_STRING) {
-            var_record emp_str = BeanUtil.cloneTo(arg);
-            arg = semantic.gener.gen_exp(emp_str, Tag.TK_PLUS, arg, var_num);
+            Var_record emp_str = BeanUtil.cloneTo(arg);
+            arg = Semantic.gener.gen_exp(emp_str, Tag.TK_PLUS, arg, var_num);
         }
         real_args_list.add(arg);
     }
 
-    public var_record gen_Call(String fname, int[] var_num) {
-        var_record rec = null;
+    public Var_record gen_Call(String fname, int[] var_num) {
+        Var_record rec = null;
         if (Error.errorNum != 0) {
             return null;
         }
         if (fun_map.containsKey(fname)) {
-            fun_record p_fun = fun_map.get(fname);
+            Fun_record p_fun = fun_map.get(fname);
             if (real_args_list.size() >= p_fun.args.size()) {
                 int l = real_args_list.size();
                 int m = p_fun.args.size();
@@ -188,7 +188,7 @@ public class Table {
                         Error.SemError.semerror(Error.SemError.real_args_err);
                         break;
                     } else {
-                        var_record ret = real_args_list.get(i);
+                        Var_record ret = real_args_list.get(i);
                         if (Error.semerr != 0) {
                             break;
                         }
@@ -214,7 +214,7 @@ public class Table {
                     rec = tfun.create_tmp_var(new Token(p_fun.type), 0, var_num);
                     gener.out_code("\tmov [ebp%d],eax\n", rec.localAddr);
                     if (p_fun.type == Tag.KW_STRING) {
-                        var_record empStr = new var_record();
+                        Var_record empStr = new Var_record();
                         String empname = "";
                         empStr.init(new Token(Tag.KW_STRING), empname);
                         rec = gener.gen_exp(empStr, Tag.TK_PLUS, rec, var_num);
@@ -237,8 +237,8 @@ public class Table {
             return;
         }
         gener.out_code("section .data\n");
-        for (Map.Entry<String, var_record> recordEntry : var_map.entrySet()) {
-            var_record p_v = recordEntry.getValue();
+        for (Map.Entry<String, Var_record> recordEntry : var_map.entrySet()) {
+            Var_record p_v = recordEntry.getValue();
             int isEx = 0;
             if (p_v.externed != 0) {
                 isEx = 1;

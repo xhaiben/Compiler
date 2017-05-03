@@ -3,8 +3,7 @@ package cacher.generator;
 import cacher.error.Error;
 import cacher.lexer.Tag;
 import cacher.lexer.Token;
-import cacher.semantic.semantic;
-import cacher.semantic.var_record;
+import cacher.semantic.Var_record;
 
 
 import java.io.File;
@@ -12,29 +11,29 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import static cacher.semantic.semantic.tfun;
+import static cacher.semantic.Semantic.tfun;
 
 /*
  * Created by xhaiben on 17-4-23.
  */
-public class generator {
+public class Generator {
     private FileOutputStream fileOutputStream;
-    private static generator gener = null;
+    private static Generator gener = null;
     private int ID = 0;
     private int convert_buffer = 0;
 
     static {
         if (gener == null) {
-            gener = new generator();
+            gener = new Generator();
         }
     }
 
-    private generator() {
+    private Generator() {
 
     }
 
-    public static generator getInstance() {
-        return generator.gener;
+    public static Generator getInstance() {
+        return Generator.gener;
     }
 
     public void set_out_file(File _out_file) {
@@ -95,9 +94,9 @@ public class generator {
      * @param opp     操作符
      * @param factor2 右操作数
      * @param var_num 变量个数
-     * @return var_record
+     * @return Var_record
      */
-    public var_record gen_exp(var_record factor1, Tag opp, var_record factor2, int[] var_num) {
+    public Var_record gen_exp(Var_record factor1, Tag opp, Var_record factor2, int[] var_num) {
         if (Error.errorNum != 0) {
             return null;
         }
@@ -121,7 +120,7 @@ public class generator {
                 rsl_type = Tag.KW_CHAR;
             }
         }
-        var_record rec = tfun.create_tmp_var(new Token(rsl_type), 0, var_num);
+        Var_record rec = tfun.create_tmp_var(new Token(rsl_type), 0, var_num);
         String lab_lop, lab_ext;
         switch (rsl_type) {
             case KW_STRING:
@@ -241,7 +240,7 @@ public class generator {
                     //添加符号
                     this.out_code("\tcmp edi,0\n");
                     this.out_code("\tje %s\n", lab2long);
-                    this.out_code("\tsub esp,1\n\tmov ecx,%d\n\tmov [esp],cl\n", '-');
+                    this.out_code("\tsub esp,1\n\tmov ecx,%d\n\tmov [esp],cl\n", (int) '-');
                     this.out_code("\tmov cl,[esi]\n\tinc cl\n\tmov [esi],cl\n");
 
                     this.out_code("%s:\n", lab2long);
@@ -367,7 +366,7 @@ public class generator {
         return rec;
     }
 
-    public var_record gen_assign(var_record des, var_record src, int[] var_num) {
+    public Var_record gen_assign(Var_record des, Var_record src, int[] var_num) {
         if (Error.errorNum != 0) {
             return null;
         }
@@ -387,7 +386,7 @@ public class generator {
         }
         if (des.type.getTag() == Tag.KW_STRING) {
             if (src.strValID != -1) {
-                var_record empstr = new var_record();
+                Var_record empstr = new Var_record();
                 String empname = "";
                 empstr.init(new Token(Tag.KW_STRING), empname);
                 src = gen_exp(empstr, Tag.TK_PLUS, src, var_num);
@@ -446,13 +445,13 @@ public class generator {
         return des;
     }
 
-    public void gen_return(var_record ret, int[] var_num) {
+    public void gen_return(Var_record ret, int[] var_num) {
         if (Error.errorNum != 0) {
             return;
         }
         if (ret != null) {
             if (ret.type.getTag() == Tag.KW_STRING) {
-                var_record empstr = new var_record();
+                Var_record empstr = new Var_record();
                 String empname = "";
                 empstr.init(new Token(Tag.KW_STRING), empname);
                 ret = gen_exp(empstr, Tag.TK_PLUS, ret, var_num);
@@ -510,7 +509,7 @@ public class generator {
         this.out_code("\tpush %d\n", val);
     }
 
-    public void gen_condition(var_record cond) {
+    public void gen_condition(Var_record cond) {
         if (Error.errorNum != 0) {
             return;
         }
@@ -549,7 +548,7 @@ public class generator {
         }
     }
 
-    public void gen_input(var_record p_i, int[] var_num) {
+    public void gen_input(Var_record p_i, int[] var_num) {
         if (Error.errorNum != 0) {
             return;
         }
@@ -564,7 +563,7 @@ public class generator {
         this.out_code("\tmov ecx,@buffer\n\tmov edx,255\n\tmov ebx,0\n\tmov eax,3\n\tint 128\n");
         this.out_code("\tcall @procBuf\n");
         if (p_i.type.getTag() == Tag.KW_STRING) {
-            var_record gBuf = new var_record();
+            Var_record gBuf = new Var_record();
             String bname = "";
             bname += "@buffer";
             gBuf.init(new Token(Tag.KW_STRING), bname);
@@ -595,7 +594,7 @@ public class generator {
         }
     }
 
-    public void gen_output(var_record p_o, int[] var_num) {
+    public void gen_output(Var_record p_o, int[] var_num) {
         if (Error.errorNum != 0) {
             return;
         }
@@ -603,7 +602,7 @@ public class generator {
             return;
         }
         this.out_code("\t;为%s产生输出代码\n", p_o.name);
-        var_record empStr = new var_record();
+        Var_record empStr = new Var_record();
         String empname = "";
         empStr.init(new Token(Tag.KW_STRING), empname);
         p_o = gen_exp(empStr, Tag.TK_PLUS, p_o, var_num);

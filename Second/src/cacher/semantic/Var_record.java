@@ -9,7 +9,7 @@ import java.io.Serializable;
 /*
  * Created by xhaiben on 17-4-23.
  */
-public class var_record implements Serializable {
+public class Var_record implements Serializable {
     public Token type; //变量类型
     public String name;
 
@@ -21,7 +21,7 @@ public class var_record implements Serializable {
     public int localAddr;
     public int externed;
 
-    public var_record() {
+    public Var_record() {
         this.type = null;
         this.name = "";
 
