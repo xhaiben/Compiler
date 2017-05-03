@@ -14,7 +14,7 @@ public class Main {
     private static Generator gener = Generator.getInstance();
 
     public static void genCommonFile() {
-        File file = new File("common.as");
+        File file = new File("common.asm");
         try {
             FileOutputStream fileOutputStream = new FileOutputStream(file);
             fileOutputStream.write("section .text\n".getBytes());
@@ -33,7 +33,7 @@ public class Main {
             fileOutputStream.write("section .data\n\t@str_2long_data db \"字符串长度溢出！\",10,13\n\t@str_2long_data_len equ 26\n".getBytes());
             fileOutputStream.write("\t@buffer times 255 db 0\n\t@buffer_len db 0\n".getBytes());
             fileOutputStream.write("\t@s_esp dd @s_base\n\t@s_ebp dd 0\n".getBytes());
-            fileOutputStream.write("\t@s_stack times 65536 db 0\nsection .bss\n@s_base:\n".getBytes());
+            fileOutputStream.write("\t@s_stack times 65536 db 0\n\t@s_base:\nsection .bss\n".getBytes());
             fileOutputStream.flush();
             fileOutputStream.close();
         } catch (Exception e) {
@@ -51,7 +51,7 @@ public class Main {
 
         genCommonFile();
 
-        gener.set_out_file(new File("out.as"));
+        gener.set_out_file(new File("out.asm"));
         gener.out_code("section .text\n");
         parser.parse();
         gener.out_code("section .bss\n");

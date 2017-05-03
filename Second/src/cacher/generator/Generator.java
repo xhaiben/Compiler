@@ -136,22 +136,21 @@ public class Generator {
                             this.out_code(String.format("\tmov ebx,[ebp+%d]\n\tmov eax,0\n\tmov al,[ebx]\n", factor2.localAddr));
                         }
                         this.out_code("\tsub esp,1\n\tmov [esp],al;长度压入后再压入数据栈\n");
-                        this.out_code("\tsub esp,1\n\tmov [esp],al;长度压入后再压入数据栈\n");
                         this.out_code(String.format("\tmov [ebp%d],esp\n", rec.localAddr));//存入数据指针
 
                         this.out_code("\tcmp eax,0\n");
-                        this.out_code(String.format("\tje %s\n", lab_ext));
+                        this.out_code("\tje %s\n", lab_ext);
                         this.out_code("\tmov ecx,0\n");
                         this.out_code("\tmov esi,ebx\n\tsub esi,1\n");
                         this.out_code("\tneg eax\n");
-                        this.out_code(String.format("%s:\n", lab_lop));
+                        this.out_code("%s:\n", lab_lop);
                         this.out_code("\tcmp ecx,eax\n");
-                        this.out_code(String.format("\tje %s\n", lab_ext));
+                        this.out_code("\tje %s\n", lab_ext);
                         this.out_code("\tmov dl,[esi+ecx]\n");
                         this.out_code("\tsub esp,1\n\tmov [esp],dl\n");
                         this.out_code("\tdec ecx\n");
-                        this.out_code(String.format("\tjmp %s\n", lab_lop));
-                        this.out_code(String.format("%s:\n", lab_ext));
+                        this.out_code("\tjmp %s\n", lab_lop);
+                        this.out_code("%s:\n", lab_ext);
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
                     } else if (factor2.strValID > 0) {
                         this.out_code(";----------生成常量string%s的代码----------\n", factor2.name);
@@ -172,6 +171,7 @@ public class Generator {
                         this.out_code("\tjmp %s\n", lab_lop);
                         this.out_code("%s:\n", lab_ext);
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");
+
                     } else if (factor2.strValID == -2) {
                         this.out_code(";----------生成全局string%s的代码----------\n", factor2.name);
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
@@ -204,6 +204,172 @@ public class Generator {
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
                     }
                 } else if (factor2.type.getTag() == Tag.KW_INT) {
+                    lab_lop = gen_name("lab", null, "numtostr2");
+                    lab_ext = gen_name("lab", null, "numtostr2_exit");
+                    String labNumSign = gen_name("lab", null, "numsign2");
+                    String labNumSignExt = gen_name("lab", null, "numsign2_exit");
+                    this.out_code(";----------生成number%s的string代码----------\n", factor2.name);
+                    this.out_code("\tmov eax,[ @s_esp]\n\tmov[ @s_esp],esp\n\tmov esp, eax\n");
+                    if (factor2.localAddr == 0) {
+                        this.out_code("\tmov eax,[@var_%s]\n", factor2.name);
+                    } else {
+                        if (factor2.localAddr < 0) {
+                            this.out_code("\tmov eax,[ebp%d]\n", factor2.localAddr);
+                        } else {
+                            this.out_code("\tmov eax,[ebp+%d]\n", factor2.localAddr);
+                        }
+                    }
+
+                    this.out_code("\tsub esp,1;先把数字的长度位置空出来\n\tmov ecx,0\n\tmov [esp],cl\n\tmov esi,esp\n");
+
+                    this.out_code("\tmov [ebp%d],esp\n", rec.localAddr);//将临时字符串的长度地址记录下来
+
+                    //确定数字的正负
+                    this.out_code("\tmov edi,0\n");//保存eax符号：0+ 1-
+                    this.out_code("\tcmp eax,0\n");
+                    this.out_code("\tjge %s\n", labNumSignExt);
+                    this.out_code("%s:\n", labNumSign);
+                    this.out_code("\tneg eax\n");
+                    this.out_code("\tmov edi,1\n");
+                    this.out_code("%s:\n", labNumSignExt);
+
+                    this.out_code("\tmov ebx,10\n");
+                    this.out_code("%s:\n", lab_lop);
+                    this.out_code("\tmov edx, 0\n\tidiv ebx\n\tmov cl,[esi]\n\tinc cl\n\tmov[esi], cl\n\tsub esp, 1\n\tadd dl, 48\n\tmov[esp], dl\n\tcmp eax, 0\n ");
+                    this.out_code("\tjne %s\n", lab_lop);
+
+                    this.out_code("\tcmp edi,0\n");
+                    this.out_code("\tje %s\n", lab_ext);
+                    this.out_code("\tsub esp,1\n\tmov ecx,%d\n\tmov [esp],cl\n", (int) '-');
+                    this.out_code("\tmov cl,[esi]\n\tinc cl\n\tmov [esi],cl\n");
+                    this.out_code("%s:\n", lab_ext);
+                    this.out_code("\tmov eax,[ @s_esp]\n\tmov[ @s_esp],esp\n\tmov esp, eax\n ");
+
+                } else if (factor2.type.getTag() == Tag.KW_CHAR) {
+//                    lab_ext = gen_name("lab", null, "chtostr2_exit");
+                    this.out_code(";----------生成char%s的string代码----------\n", factor2.name);
+                    this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");
+                    if (factor2.localAddr == 0) {
+                        this.out_code("\tmov eax,[@var_%s]\n", factor2.name);
+                    } else {
+                        if (factor2.localAddr < 0) {
+                            this.out_code("\tmov eax,[ebp%d]\n", factor2.localAddr);
+                        } else {
+                            this.out_code("\tmov eax,[ebp+%d]\n", factor2.localAddr);
+                        }
+                    }
+                    this.out_code("\tsub esp,1\n\tmov bl,1\n\tmov [esp],bl\n\tmov [ebp%d],esp\n", rec.localAddr);//存入数据指针
+                    this.out_code("\tsub esp,1\n\tmov [esp],al\n");
+                    this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");
+
+
+                }
+                this.out_code(";-----------------2--------------------------------\n");
+                if (factor1.type.getTag() == Tag.KW_STRING) {
+                    lab_lop = gen_name("lab", null, "cpystr1");
+                    lab_ext = gen_name("lab", null, "cpystr1_exit");
+                    if (factor1.strValID == -1) {
+                        this.out_code(String.format(";----------生成动态string%s的代码----------\n", factor1.name));
+                        this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");
+                        if (factor1.localAddr < 0) {
+                            this.out_code(String.format("\tmov ebx,[ebp%d]\n\tmov eax,0\n\tmov al,[ebx]\n", factor1.localAddr));
+                        } else {
+                            this.out_code(String.format("\tmov ebx,[ebp+%d]\n\tmov eax,0\n\tmov al,[ebx]\n", factor1.localAddr));
+                        }
+
+                        this.out_code("\tcmp eax,0\n");
+                        this.out_code("\tje %s\n", lab_ext);
+
+                        this.out_code("\tmov ebx,[ebp%d];\n", rec.localAddr);//将结果字符串的长度追加
+
+                        this.out_code("\tmov edx,0\n\tmov dl,[ebx]\n");
+                        this.out_code("\tadd edx,eax\n");
+                        this.out_code("\tmov [ebx],dl\n");
+
+                        this.out_code("\tmov ecx,0\n");
+                        if (factor1.localAddr < 0)
+                            this.out_code("\tmov esi,[ebp%d]\n\tsub esi,1\n", factor1.localAddr);//消除偏移
+                        else
+                            this.out_code("\tmov esi,[ebp+%d]\n\tsub esi,1\n", factor1.localAddr);//消除偏移
+                        this.out_code("\tneg eax\n");
+                        //仅仅是测试字符串总长是否超过255，超出部分忽略
+                        this.out_code("\tcmp edx,255\n");
+                        this.out_code("\tjna %s\n", lab_lop);
+                        this.out_code("\tcall @str2long\n");
+
+                        this.out_code("%s:\n", lab_lop);
+                        this.out_code("\tcmp ecx,eax\n");
+                        this.out_code("\tje %s\n", lab_ext);
+                        this.out_code("\tmov dl,[esi+ecx]\n");
+                        this.out_code("\tsub esp,1\n\tmov [esp],dl\n");
+                        this.out_code("\tdec ecx\n");
+                        this.out_code("\tjmp %s\n", lab_lop);
+                        this.out_code("%s:\n", lab_ext);
+                        this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
+                    } else if (factor1.strValID > 0) {
+                        this.out_code(";----------生成常量string%s的代码----------\n", factor1.name);
+                        this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
+                        this.out_code("\tmov eax,@str_%d_len\n", factor1.strValID);
+                        this.out_code("\tcmp eax,0\n");
+
+                        this.out_code("\tje %s\n", lab_ext);
+                        this.out_code("\tmov ebx,[ebp%d];\n", rec.localAddr);//将结果字符串的长度追加
+                        this.out_code("\tmov edx,0\n\tmov dl,[ebx]\n");
+                        this.out_code("\tadd edx,eax\n");
+                        this.out_code("\tmov [ebx],dl\n");
+
+                        this.out_code("\tmov ecx,@str_%d_len\n\tdec ecx\n", factor1.strValID);
+                        this.out_code("\tmov esi,@str_%d\n", factor1.strValID);
+                        //仅仅是测试字符串总长是否超过255，超出报错
+                        this.out_code("\tcmp edx,255\n");
+                        this.out_code("\tjna %s\n", lab_lop);
+                        this.out_code("\tcall @str2long\n");
+
+                        this.out_code("%s:\n", lab_lop);
+                        this.out_code("\tcmp ecx,-1\n");
+                        this.out_code("\tje %s\n", lab_ext);
+                        this.out_code("\tmov al,[esi+ecx]\n");
+                        this.out_code("\tsub esp,1\n\tmov [esp],al\n");
+                        this.out_code("\tdec ecx\n");
+                        this.out_code("\tjmp %s\n", lab_lop);
+                        this.out_code("%s:\n", lab_ext);
+                        this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
+                    } else if (factor1.strValID == -2) {
+                        this.out_code(";----------生成全局string%s的代码----------\n", factor1.name);
+                        this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
+                        if (convert_buffer == 0)
+                            this.out_code("\tmov eax,0\n\tmov al,[@str_%s_len]\n", factor1.name);
+                        else
+                            this.out_code("\tmov eax,0\n\tmov al,[%s_len]\n", factor1.name);
+                        this.out_code("\tcmp eax,0\n");
+
+                        this.out_code("\tje %s\n", lab_ext);
+                        this.out_code("\tmov ebx,[ebp%d];\n", rec.localAddr);//将结果字符串的长度追加
+                        this.out_code("\tmov edx,0\n\tmov dl,[ebx]\n");
+                        this.out_code("\tadd edx,eax\n");
+                        this.out_code("\tmov [ebx],dl\n");
+
+                        this.out_code("\tsub eax,1\n\tmov ecx,eax\n");
+                        if (convert_buffer == 0)
+                            this.out_code("\tmov esi,@str_%s\n", factor1.name);
+                        else
+                            this.out_code("\tmov esi,%s\n", factor1.name);
+                        //仅仅是测试字符串总长是否超过255，超出报错
+                        this.out_code("\tcmp edx,255\n");
+                        this.out_code("\tjna %s\n", lab_lop);
+                        this.out_code("\tcall @str2long\n");
+
+                        this.out_code("%s:\n", lab_lop);
+                        this.out_code("\tcmp ecx,-1\n");
+                        this.out_code("\tje %s\n", lab_ext);
+                        this.out_code("\tmov al,[esi+ecx]\n");
+                        this.out_code("\tsub esp,1\n\tmov [esp],al\n");
+                        this.out_code("\tdec ecx\n");
+                        this.out_code("\tjmp %s\n", lab_lop);
+                        this.out_code("%s:\n", lab_ext);
+                        this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
+                    }
+                } else if (factor1.type.getTag() == Tag.KW_INT) {
                     lab_lop = gen_name("lab", null, "numtostr1");
                     lab_ext = gen_name("lab", null, "numtostr1_exit");
                     String labNumSign = gen_name("lab", null, "numsign1");
@@ -220,7 +386,7 @@ public class Generator {
                             this.out_code("\tmov eax,[ebp+%d]\n", factor1.localAddr);
                         }
                     }
-                    this.out_code("\tmov esi,[ebp%d];\n", rec.localAddr);//将临时字符串的长度地址记录下来
+                    this.out_code("\tmov esi,[ebp%d];\n", rec.localAddr);
 
                     //确定数字的正负
                     this.out_code("\tmov edi,0\n");//保存eax符号：0+ 1-
@@ -231,18 +397,19 @@ public class Generator {
                     this.out_code("\tmov edi,1\n");
                     this.out_code("%s:\n", labNumSignExt);
 
+
                     //累加长度，压入数据
                     this.out_code("\tmov ebx,10\n");
                     this.out_code("%s:\n", lab_lop);
                     this.out_code("\tmov edx,0\n\tidiv ebx\n\tmov cl,[esi]\n\tinc cl\n\tmov [esi],cl\n\tsub esp,1\n\tadd dl,48\n\tmov [esp],dl\n\tcmp eax,0\n");
                     this.out_code("\tjne %s\n", lab_lop);
-
+//
                     //添加符号
                     this.out_code("\tcmp edi,0\n");
                     this.out_code("\tje %s\n", lab2long);
                     this.out_code("\tsub esp,1\n\tmov ecx,%d\n\tmov [esp],cl\n", (int) '-');
                     this.out_code("\tmov cl,[esi]\n\tinc cl\n\tmov [esi],cl\n");
-
+//
                     this.out_code("%s:\n", lab2long);
                     //仅仅是测试字符串总长是否超过255，超出报错
                     this.out_code("\tcmp cl,255\n");
@@ -251,6 +418,7 @@ public class Generator {
                     this.out_code("%s:\n", lab_ext);
                     this.out_code("\tmov eax,[ @s_esp]\n\tmov[ @s_esp],esp\n\tmov esp, eax\n ");
                 } else if (factor1.type.getTag() == Tag.KW_CHAR) {
+
                     lab_ext = gen_name("lab", null, "chtostr2_exit");
                     this.out_code(";----------生成char%s的string代码----------\n", factor1.name);
                     this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");
@@ -265,13 +433,14 @@ public class Generator {
                     }
                     this.out_code("\tmov esi,[ebp%d];\n", rec.localAddr);
                     this.out_code("\tmov cl,[esi]\n\tinc cl\n\tmov [esi],cl\n\tsub esp,1\n\tmov [esp],al\n");
+//
                     this.out_code("\tcmp cl,255\n");
                     this.out_code("\tjna %s\n", lab_ext);
                     this.out_code("\tcall @str2long\n");
                     this.out_code("%s:\n", lab_ext);
                     this.out_code("\tmov eax,[ @s_esp]\n\tmov[ @s_esp],esp\n\tmov esp, eax\n ");
                 }
-                this.out_code(";--------------------------------------------------\n");
+                this.out_code(";-------------------1------------------------------\n");
                 break;
             case KW_INT:
                 if (factor1.localAddr == 0) {
@@ -455,18 +624,24 @@ public class Generator {
                 String empname = "";
                 empstr.init(new Token(Tag.KW_STRING), empname);
                 ret = gen_exp(empstr, Tag.TK_PLUS, ret, var_num);
-            }
-            if (ret.localAddr < 0) {
-                this.out_code("\tmov eax,[ebp%d]\n", ret.localAddr);
+
+                if (ret.localAddr < 0) {
+                    this.out_code("\tmov eax,[ebp%d]\n", ret.localAddr);
+                } else {
+                    this.out_code("\tmov eax,[ebp+%d]\n", ret.localAddr);
+                }
             } else {
-                this.out_code("\tmov eax,[ebp+%d]\n", ret.localAddr);
+                if (ret.localAddr == 0) {
+                    this.out_code("\tmov eax,[@var_%s]\n", ret.name);
+                } else {
+                    if (ret.localAddr < 0) {
+                        this.out_code("\tmov eax,[ebp%d]\n", ret.localAddr);
+                    }else{
+                        this.out_code("\tmov eax,[ebp+%d]\n",ret.localAddr);
+                    }
+                }
             }
-        } else {
-            if (ret.localAddr < 0) {
-                this.out_code("\tmov eax,[ebp%d]\n", ret.localAddr);
-            } else {
-                this.out_code("\tmov eax,[ebp+%d]\n", ret.localAddr);
-            }
+
         }
         this.out_code("\tmov ebx,[@s_ebp]\n\tmov [@s_esp],ebx\n");//s_leave
         this.out_code("\tmov ebx,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,ebx\n");//esp<=>[@s_esp]
@@ -526,7 +701,12 @@ public class Generator {
             if (cond.localAddr == 0) {
                 this.out_code("\tmov eax,[@var_%s]\n", cond.name);
             } else {
-                this.out_code("\tmov eax,[ebp+%d]\n", cond.name);
+                if (cond.localAddr < 0) {
+                    this.out_code("\tmov eax,[ebp%d]\n", cond.localAddr);
+                } else {
+                    this.out_code("\tmov eax,[ebp+%d]\n", cond.localAddr);
+                }
+
             }
             this.out_code("\tcmp eax,0\n");
         }

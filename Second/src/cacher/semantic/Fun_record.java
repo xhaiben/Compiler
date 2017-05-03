@@ -153,12 +153,37 @@ public class Fun_record implements Serializable {
         int args_len = this.args.size();
         int local_var_len = this.local_vars.size();
         p_temp_var.localAddr = -4 * (local_var_len - args_len);
-        Semantic.gener.gen_local_var(Math.max(p_temp_var.intVal, Math.max(p_temp_var.charVal, Math.max(p_temp_var.voidVal, p_temp_var.strValID))));
+
+//        Semantic.gener.gen_local_var(Math.max(p_temp_var.intVal, Math.max(p_temp_var.charVal, Math.max(p_temp_var.voidVal, p_temp_var.strValID))));
+        switch (type.getTag()) {
+            case KW_INT:
+                Semantic.gener.gen_local_var(p_temp_var.intVal);
+                break;
+            case KW_CHAR:
+                Semantic.gener.gen_local_var(p_temp_var.charVal);
+                break;
+            case KW_STRING:
+                Semantic.gener.gen_local_var(p_temp_var.strValID);
+                break;
+        }
         return p_temp_var;
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
+    public boolean equals(Fun_record fun_record) {
+        if (Error.synerr != 0) {
+            return false;
+        }
+        boolean ret = true;
+        if (args.size() == fun_record.args.size()) {
+            for (int i = 0; i < args.size(); i++) {
+                if (args.get(i) != fun_record.args.get(i)) {
+                    ret = false;
+                    break;
+                }
+            }
+        } else {
+            ret = false;
+        }
+        return type == fun_record.type && name.equals(fun_record.name) && ret;
     }
 }

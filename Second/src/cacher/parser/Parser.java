@@ -57,6 +57,12 @@ public class Parser {
     private void program() {
         if (nextToken() == -1) {
             //到达文件末尾
+            table.over();
+            if (Error.errorNum == 0) {
+                System.out.printf("编译完成");
+            } else {
+                System.out.println("编译失败");
+            }
         } else {
             dec();
             program();
@@ -733,9 +739,9 @@ public class Parser {
     private Var_record exptail(Var_record factor1, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_GT || token.getTag() == Tag.TK_GEQ || token.getTag() == Tag.TK_LT || token.getTag() == Tag.TK_LEQ || token.getTag() == Tag.TK_EQ || token.getTag() == Tag.TK_NEQ) {
-
+            Tag opp = token.getTag();
             Var_record factor2 = expr(var_num);
-            return gener.gen_exp(factor1, token.getTag(), factor2, var_num);
+            return gener.gen_exp(factor1, opp, factor2, var_num);
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //错误
             synterror(Error.ParserError.opplost, Lexer.getLine_num());
@@ -795,8 +801,9 @@ public class Parser {
     private Var_record itemtail(Var_record factor1, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_PLUS || token.getTag() == Tag.TK_MINUS) {
+            Tag opp = token.getTag();
             Var_record factor2 = aloexp(var_num);
-            return gener.gen_exp(factor1, token.getTag(), factor2, var_num);
+            return gener.gen_exp(factor1, opp, factor2, var_num);
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //error
             synterror(Error.ParserError.opplost, Lexer.getLine_num());
@@ -831,8 +838,9 @@ public class Parser {
     private Var_record factortail(Var_record factor1, int[] var_num) {
         nextToken();
         if (token.getTag() == Tag.TK_STAR || token.getTag() == Tag.TK_DIVIDE) {
+            Tag opp = token.getTag();
             Var_record factor2 = item(var_num);
-            return gener.gen_exp(factor1, token.getTag(), factor2, var_num);
+            return gener.gen_exp(factor1, opp, factor2, var_num);
         } else if (token.getTag() == Tag.TK_IDENT || token.getTag() == Tag.TK_C_NUM || token.getTag() == Tag.TK_C_CHAR || token.getTag() == Tag.TK_C_STR || token.getTag() == Tag.TK_OPEN_PA) {
             //error
             synterror(Error.ParserError.opplost, Lexer.getLine_num());

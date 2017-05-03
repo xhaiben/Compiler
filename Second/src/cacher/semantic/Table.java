@@ -167,7 +167,8 @@ public class Table {
             return;
         }
         if (arg.type.getTag() == Tag.KW_STRING) {
-            Var_record emp_str = BeanUtil.cloneTo(arg);
+            Var_record emp_str = new Var_record();
+            emp_str.init(new Token(Tag.KW_STRING), "");
             arg = Semantic.gener.gen_exp(emp_str, Tag.TK_PLUS, arg, var_num);
         }
         real_args_list.add(arg);
@@ -210,7 +211,7 @@ public class Table {
                 }
                 gener.out_code("\tcall %s\n", fname);
                 gener.out_code("\tadd esp,%d\n", 4 * l);
-                if (p_fun.type == Tag.KW_VOID) {
+                if (p_fun.type != Tag.KW_VOID) {
                     rec = tfun.create_tmp_var(new Token(p_fun.type), 0, var_num);
                     gener.out_code("\tmov [ebp%d],eax\n", rec.localAddr);
                     if (p_fun.type == Tag.KW_STRING) {
@@ -264,9 +265,9 @@ public class Table {
                         if (j != 0) {
                             gener.out_code(",");
                         }
-                        gener.out_code("%d", strBuf.charAt(j));
+                        gener.out_code("%d", (int) strBuf.charAt(j));
                     } else {
-                        gener.out_code("\",%d", strBuf.charAt(j));
+                        gener.out_code("\",%d", (int) strBuf.charAt(j));
                     }
                     chpass = 0;
                 } else {
@@ -274,7 +275,7 @@ public class Table {
                         if (j != 0) {
                             gener.out_code(",");
                         }
-                        gener.out_code("%c", strBuf.charAt(j));
+                        gener.out_code("\"%c", strBuf.charAt(j));
                         if (j == l - 1) {
                             gener.out_code("\"");
                         }
@@ -291,7 +292,7 @@ public class Table {
                 gener.out_code("\"\"");
             }
             gener.out_code("\n");
-            gener.out_code("\t@str_%d_len equ %d\n", i + 1, stringTable.get(i).length());
+            gener.out_code("\t@str_%d_len equ %d\n", i + 1, stringTable.get(i).getBytes().length);
         }
     }
 
