@@ -59,9 +59,9 @@ public class Parser {
             //到达文件末尾
             table.over();
             if (Error.errorNum == 0) {
-                System.out.printf("编译完成");
+                System.out.printf("编译完成\n");
             } else {
-                System.out.println("编译失败");
+                System.out.println("编译失败\n");
             }
         } else {
             dec();

@@ -10,7 +10,8 @@ import java.util.Scanner;
  */
 public class InputSystem {
     private StringBuilder input_content;
-    private int ch_point;
+    private int ch_point;    private int compileOK = 0;
+
 
     public int getLine_no() {
         return line_no;

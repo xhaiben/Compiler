@@ -103,7 +103,7 @@ public class Lexer {
                 int val = 0;
                 if (cur_char != '0') {//十进制
                     do {
-                        val += val * 10 + cur_char - '0';
+                        val = (val * 10 + (cur_char - 48));
                         getChar();
                     } while (Character.isDigit(cur_char));
                 } else {

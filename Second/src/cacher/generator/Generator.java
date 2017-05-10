@@ -135,7 +135,7 @@ public class Generator {
                         } else {
                             this.out_code(String.format("\tmov ebx,[ebp+%d]\n\tmov eax,0\n\tmov al,[ebx]\n", factor2.localAddr));
                         }
-                        this.out_code("\tsub esp,1\n\tmov [esp],al;长度压入后再压入数据栈\n");
+                        this.out_code("\tsub esp,1\n\tmov [esp],al\n");
                         this.out_code(String.format("\tmov [ebp%d],esp\n", rec.localAddr));//存入数据指针
 
                         this.out_code("\tcmp eax,0\n");
@@ -155,7 +155,7 @@ public class Generator {
                     } else if (factor2.strValID > 0) {
                         this.out_code(";----------生成常量string%s的代码----------\n", factor2.name);
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
-                        this.out_code("\tmov eax,@str_%d_len\n\tsub esp,1\n\tmov [esp],al;长度压入后再压入数据栈\n", factor2.strValID);
+                        this.out_code("\tmov eax,@str_%d_len\n\tsub esp,1\n\tmov [esp],al\n", factor2.strValID);
                         this.out_code("\tmov [ebp%d],esp\n", rec.localAddr);//存入数据指针
 
                         this.out_code("\tcmp eax,0\n");//测试长度是否是0
@@ -176,9 +176,9 @@ public class Generator {
                         this.out_code(";----------生成全局string%s的代码----------\n", factor2.name);
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
                         if (this.convert_buffer == 0)
-                            this.out_code("\tmov eax,0\n\tmov al,[@str_%s_len]\n\tsub esp,1\n\tmov [esp],al;长度压入后再压入数据栈\n", factor2.name);
+                            this.out_code("\tmov eax,0\n\tmov al,[@str_%s_len]\n\tsub esp,1\n\tmov [esp],al\n", factor2.name);
                         else
-                            this.out_code("\tmov eax,0\n\tmov al,[%s_len]\n\tsub esp,1\n\tmov [esp],al;长度压入后再压入数据栈\n", factor2.name);
+                            this.out_code("\tmov eax,0\n\tmov al,[%s_len]\n\tsub esp,1\n\tmov [esp],al\n", factor2.name);
                         this.out_code("\tmov [ebp%d],esp\n", rec.localAddr);//存入数据指针
 
                         this.out_code("\tcmp eax,0\n");//测试长度是否是0
@@ -199,7 +199,7 @@ public class Generator {
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
                     } else if (factor2.strValID == 0) {
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
-                        this.out_code("\tmov eax,0\n\tsub esp,1\n\tmov [esp],al;长度压入后再压入数据栈\n");
+                        this.out_code("\tmov eax,0\n\tsub esp,1\n\tmov [esp],al\n");
                         this.out_code("\tmov [ebp%d],esp\n", rec.localAddr);//存入数据指针
                         this.out_code("\tmov eax,[@s_esp]\n\tmov [@s_esp],esp\n\tmov esp,eax\n");//esp<=>[@s_esp]
                     }
@@ -220,7 +220,7 @@ public class Generator {
                         }
                     }
 
-                    this.out_code("\tsub esp,1;先把数字的长度位置空出来\n\tmov ecx,0\n\tmov [esp],cl\n\tmov esi,esp\n");
+                    this.out_code("\tsub esp,1\n\tmov ecx,0\n\tmov [esp],cl\n\tmov esi,esp\n");
 
                     this.out_code("\tmov [ebp%d],esp\n", rec.localAddr);//将临时字符串的长度地址记录下来
 
